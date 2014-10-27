@@ -7,9 +7,9 @@ Gem::Specification.new do |spec|
   spec.name          = "bitcoin_node"
   spec.version       = BitcoinNode::VERSION
   spec.authors       = ["simcap"]
-  spec.email         = ["simon@preplaysports.com"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
+  spec.email         = ["simcap@fastmail.com"]
+  spec.summary       = %q{Simple node on the p2p bitcoin network}
+  spec.description   = %q{Simple node on the p2p bitcoin network}
   spec.homepage      = ""
   spec.license       = "MIT"
 
