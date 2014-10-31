@@ -1,9 +1,8 @@
 # BitcoinNode
 
-Study of Bitcoin protocol by implementing a simple node 
-in the p2p bitcoin network
+Study of Bitcoin protocol by implementing a simple node in the p2p bitcoin network.
 
-Using as much as Ruby stdlib as possible. Main foreign dependency is Celluloid::IO
+Using as much as Ruby stdlib as possible. Main foreign dependency is `Celluloid::IO`
 
 ## Installation
 
@@ -19,14 +18,19 @@ Or install it yourself as:
 
     $ gem install bitcoin_node
 
+## Progress
+
+DONE
+
+  * Version handshake
+  * Ping, pong
+
+TODO
+
+  * ...
+
 ## Usage
 
-TODO: Write usage instructions here
+Test with
 
-## Contributing
-
-1. Fork it ( https://github.com/[my-github-username]/bitcoin_node/fork )
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
+    $ bundle exec rspec
