@@ -2,18 +2,17 @@
 
 module BitcoinNode
   module Message
-    class Version
+    class Version < Payload
 
-      FIELDS = %i(protocol_version services timestamp addr_recv
-                  addr_from nonce user_agent start_height relay).freeze
-
-      attr_accessor *FIELDS
-
-      def initialize(fields)
-        fields.each do |k, v|
-          self.send("#{k.to_s}=", v)
-        end
-      end
+      attribute :protocol_version, Integer, default: 7001
+      attribute :services
+      attribute :timestamp
+      attribute :addr_recv
+      attribute :addr_from
+      attribute :nonce, Integer, default: rand(0xffffffffffffffff)
+      attribute :user_agent, String, default: "/bitcoin_node:#{BitcoinNode::VERSION}/"
+      attribute :start_height
+      attribute :relay
 
       def raw
         [
