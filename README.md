@@ -3,7 +3,7 @@
 Study of Bitcoin protocol by implementing a simple node 
 in the p2p bitcoin network
 
-Using as much as Ruby stdlib as possible. Main foreign dependency is Celluloid::IO
+Using as much as Ruby stdlib as possible. Main foreign dependencies are Celluloid::IO, Virtus
 
 ## Installation
 

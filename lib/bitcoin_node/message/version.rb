@@ -1,14 +1,12 @@
-# encoding: ascii-8bit
-
 module BitcoinNode
   module Message
     class Version < Payload
 
       attribute :protocol_version, Integer, default: 7001
-      attribute :services
+      attribute :services, Integer, default: 1
       attribute :timestamp
-      attribute :addr_recv
-      attribute :addr_from
+      attribute :addr_recv, AddressField
+      attribute :addr_from, AddressField
       attribute :nonce, Integer, default: rand(0xffffffffffffffff)
       attribute :user_agent, String, default: "/bitcoin_node:#{BitcoinNode::VERSION}/"
       attribute :start_height
@@ -17,8 +15,8 @@ module BitcoinNode
       def raw
         [
           [protocol_version, services, timestamp].pack('VQQ'), 
-          pack_address(addr_recv),
-          pack_address(addr_from),
+          addr_recv.pack,
+          addr_from.pack,
           [nonce].pack('Q'),
           pack_var_string(user_agent),
           [start_height].pack('V'), 
@@ -28,7 +26,7 @@ module BitcoinNode
 
       def self.from_raw(payload)
         protocol_version, services, timestamp, to, from, nonce, payload = payload.unpack("VQQa26a26Qa*")
-        to, from = unpack_address_field(to), unpack_address_field(from)
+        to, from = AddressField.unpack(to), AddressField.unpack(from)
         user_agent, payload = unpack_var_string(payload)
         last_block, payload = payload.unpack("Va*")
         relay, payload = unpack_relay_field(protocol_version, payload)
@@ -63,13 +61,6 @@ module BitcoinNode
 
       def pack_var_string(payload)
         pack_var_int(payload.bytesize) + payload
-      end
-
-      def pack_address(address)
-        h, p = address.split(':')
-        sockaddr = Socket.pack_sockaddr_in(p.to_i, h)
-        p, h = sockaddr[2...4], sockaddr[4...8]
-        [[1].pack('Q'), "\x00" * 10, "\xFF\xFF", h, p].join
       end
 
       def self.unpack_relay_field(version, payload)
