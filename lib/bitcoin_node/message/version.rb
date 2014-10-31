@@ -5,7 +5,7 @@ module BitcoinNode
     class Version
 
       FIELDS = %i(protocol_version services timestamp addr_recv
-                  addr_from nonce start_height relay).freeze
+                  addr_from nonce user_agent start_height relay).freeze
 
       attr_accessor *FIELDS
 
@@ -21,17 +21,18 @@ module BitcoinNode
           pack_address(addr_recv),
           pack_address(addr_from),
           [nonce].pack('Q'),
-          pack_var_string("/bitcoin_node:#{BitcoinNode::VERSION}/"),
+          pack_var_string(user_agent),
           [start_height].pack('V'), 
           pack_boolean(true)
         ].join
       end
 
-      def self.from_raw(version)
-        protocol_version, services, timestamp, to, from, nonce, payload = version.unpack("VQQa26a26Qa*")
+      def self.from_raw(payload)
+        protocol_version, services, timestamp, to, from, nonce, payload = payload.unpack("VQQa26a26Qa*")
         to, from = unpack_address_field(to), unpack_address_field(from)
-        last_block, _ = payload.unpack("Va*")
-
+        user_agent, payload = unpack_var_string(payload)
+        last_block, payload = payload.unpack("Va*")
+        relay, payload = unpack_relay_field(protocol_version, payload)
 
         new(
           protocol_version: protocol_version,
@@ -40,7 +41,9 @@ module BitcoinNode
           addr_recv: to,
           addr_from: from, 
           nonce: nonce,
-          start_height: last_block
+          user_agent: user_agent,
+          start_height: last_block,
+          relay: relay,
         )
       end
 
@@ -70,9 +73,32 @@ module BitcoinNode
         [[1].pack('Q'), "\x00" * 10, "\xFF\xFF", h, p].join
       end
 
+      def self.unpack_relay_field(version, payload)
+        ( version >= 70001 and payload ) ? unpack_boolean(payload) : [ true, nil ]
+      end
+
+      def self.unpack_boolean(payload)
+        bdata, payload = payload.unpack("Ca*")
+        [ (bdata == 0 ? false : true), payload ]
+      end
+
       def self.unpack_address_field(address)
         ip, port = address.unpack("x8x12a4n")
         "#{ip.unpack("C*").join(".")}:#{port}"
+      end
+
+      def self.unpack_var_string(payload)
+        size, payload = unpack_var_int(payload)
+        size > 0 ? (string, payload = payload.unpack("a#{size}a*")) : [nil, payload]
+      end
+
+      def self.unpack_var_int(payload)
+        case payload.unpack("C")[0] # TODO add test cases
+        when 0xfd; payload.unpack("xva*")
+        when 0xfe; payload.unpack("xVa*")
+        when 0xff; payload.unpack("xQa*") # TODO add little-endian version of Q
+        else; payload.unpack("Ca*")
+        end
       end
 
     end

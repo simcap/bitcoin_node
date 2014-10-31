@@ -13,6 +13,7 @@ describe 'Messages protocol' do
       addr_recv: '127.0.0.0:8333',
       addr_from: '192.168.0.1:45555', 
       nonce: nonce,
+      user_agent: "/bitcoin_node:#{BitcoinNode::VERSION}/",
       start_height: 127953,
       relay: true,
     )
@@ -20,7 +21,7 @@ describe 'Messages protocol' do
     sent_version = BN::Message::Version.from_raw(version.raw)
 
     %i(protocol_version services timestamp addr_recv
-        addr_from nonce).each do |field|
+        addr_from nonce user_agent start_height relay).each do |field|
       expect(sent_version.send(field)).to eql(version.send(field))
     end
   end
