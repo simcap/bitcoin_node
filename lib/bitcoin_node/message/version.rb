@@ -2,42 +2,34 @@ module BitcoinNode
   module Message
     class Version < Payload
 
-      attribute :protocol_version, Integer, default: 7001
-      attribute :services, Integer, default: 1
-      attribute :timestamp
+      attribute :protocol_version, Integer32Field, default: Integer64Field.new(value: 7001)
+      attribute :services, Integer64Field, default: Integer64Field.new(value: 1)
+      attribute :timestamp, Integer64Field
       attribute :addr_recv, AddressField
       attribute :addr_from, AddressField
-      attribute :nonce, Integer, default: rand(0xffffffffffffffff)
-      attribute :user_agent, String, default: "/bitcoin_node:#{BitcoinNode::VERSION}/"
-      attribute :start_height
-      attribute :relay
+      attribute :nonce, Integer64Field, default: Integer64Field.new(value: rand(0xffffffffffffffff))
+      attribute :user_agent, StringField, default: StringField.new(value: "/bitcoin_node:#{BitcoinNode::VERSION}/")
+      attribute :start_height, Integer32Field
+      attribute :relay, BooleanField
 
       def raw
-        [
-          [protocol_version, services, timestamp].pack('VQQ'), 
-          addr_recv.pack,
-          addr_from.pack,
-          [nonce].pack('Q'),
-          pack_var_string(user_agent),
-          [start_height].pack('V'), 
-          pack_boolean(true)
-        ].join
+        attributes.values.map(&:pack).join
       end
 
       def self.from_raw(payload)
         protocol_version, services, timestamp, to, from, nonce, payload = payload.unpack("VQQa26a26Qa*")
-        to, from = AddressField.unpack(to), AddressField.unpack(from)
-        user_agent, payload = unpack_var_string(payload)
-        last_block, payload = payload.unpack("Va*")
-        relay, payload = unpack_relay_field(protocol_version, payload)
+        to, from = AddressField.parse(to), AddressField.parse(from)
+        user_agent, payload = StringField.parse(payload)
+        last_block, payload = Integer32Field.parse(payload)
+        relay = parse_relay(protocol_version, payload)
 
         new(
-          protocol_version: protocol_version,
-          services: services,
-          timestamp: timestamp,
+          protocol_version: { value: protocol_version},
+          services: { value: services},
+          timestamp: { value: timestamp},
           addr_recv: to,
           addr_from: from, 
-          nonce: nonce,
+          nonce: { value: nonce},
           user_agent: user_agent,
           start_height: last_block,
           relay: relay,
@@ -46,48 +38,16 @@ module BitcoinNode
 
       private
 
-      def pack_boolean(b)
-        (b == true) ? [0xFF].pack("C") : [0x00].pack("C")
-      end
-
-      def pack_var_int(i)
-        if i < 0xfd; [ i].pack("C")
-        elsif i <= 0xffff; [0xfd, i].pack("Cv")
-        elsif i <= 0xffffffff; [0xfe, i].pack("CV")
-        elsif i <= 0xffffffffffffffff; [0xff, i].pack("CQ")
-        else raise "int(#{i}) too large!"
-        end
-      end
-
-      def pack_var_string(payload)
-        pack_var_int(payload.bytesize) + payload
-      end
-
-      def self.unpack_relay_field(version, payload)
-        ( version >= 70001 and payload ) ? unpack_boolean(payload) : [ true, nil ]
-      end
-
-      def self.unpack_boolean(payload)
-        bdata, payload = payload.unpack("Ca*")
-        [ (bdata == 0 ? false : true), payload ]
-      end
-
-      def self.unpack_address_field(address)
-        ip, port = address.unpack("x8x12a4n")
-        "#{ip.unpack("C*").join(".")}:#{port}"
+      def self.parse_relay(version, payload)
+        ( version >= 70001 and payload ) ? BooleanField.parse(payload) : BooleanField.new(value: true)
       end
 
       def self.unpack_var_string(payload)
-        size, payload = unpack_var_int(payload)
-        size > 0 ? (string, payload = payload.unpack("a#{size}a*")) : [nil, payload]
-      end
-
-      def self.unpack_var_int(payload)
-        case payload.unpack("C")[0] # TODO add test cases
-        when 0xfd; payload.unpack("xva*")
-        when 0xfe; payload.unpack("xVa*")
-        when 0xff; payload.unpack("xQa*") # TODO add little-endian version of Q
-        else; payload.unpack("Ca*")
+        size, payload = BN::Message.unpack_var_int(payload)
+        if size > 0
+          [StringField.new(value: payload.unpack("a#{size}a*")), payload]
+        else 
+          [nil, payload]
         end
       end
 
