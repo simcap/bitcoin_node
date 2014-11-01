@@ -6,11 +6,11 @@ describe 'Messages protocol' do
     now = Time.now.tv_sec
 
     version = BN::Message::Version.new(
-      timestamp: { value: now},
+      timestamp: now,
       addr_recv: { host: '127.0.0.0', port: 8333 },
       addr_from: { host: '192.168.0.1', port: 45555 },
-      start_height: { value: 127953 },
-      relay: { value: true},
+      start_height: 127953,
+      relay: true,
     )
 
     parsed_version = BN::Message::Version.from_raw(version.raw)

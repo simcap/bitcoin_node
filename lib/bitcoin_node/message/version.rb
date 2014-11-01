@@ -2,19 +2,15 @@ module BitcoinNode
   module Message
     class Version < Payload
 
-      attribute :protocol_version, Integer32Field, default: Integer64Field.new(value: 7001)
-      attribute :services, Integer64Field, default: Integer64Field.new(value: 1)
-      attribute :timestamp, Integer64Field
-      attribute :addr_recv, AddressField
-      attribute :addr_from, AddressField
-      attribute :nonce, Integer64Field, default: Integer64Field.new(value: rand(0xffffffffffffffff))
-      attribute :user_agent, StringField, default: StringField.new(value: "/bitcoin_node:#{BitcoinNode::VERSION}/")
-      attribute :start_height, Integer32Field
-      attribute :relay, BooleanField
-
-      def raw
-        attributes.values.map(&:pack).join
-      end
+      field :protocol_version, Integer32Field, default: 7001
+      field :services, Integer64Field, default: 1
+      field :timestamp, Integer64Field
+      field :addr_recv, AddressField
+      field :addr_from, AddressField
+      field :nonce, Integer64Field, default: rand(0xffffffffffffffff)
+      field :user_agent, StringField, default: "/bitcoin_node:#{BitcoinNode::VERSION}/"
+      field :start_height, Integer32Field
+      field :relay, BooleanField
 
       def self.from_raw(payload)
         protocol_version, services, timestamp, to, from, nonce, payload = payload.unpack("VQQa26a26Qa*")
@@ -24,12 +20,12 @@ module BitcoinNode
         relay = parse_relay(protocol_version, payload)
 
         new(
-          protocol_version: { value: protocol_version},
-          services: { value: services},
-          timestamp: { value: timestamp},
+          protocol_version: protocol_version,
+          services: services,
+          timestamp: timestamp,
           addr_recv: to,
           addr_from: from, 
-          nonce: { value: nonce},
+          nonce: nonce,
           user_agent: user_agent,
           start_height: last_block,
           relay: relay,
@@ -39,7 +35,7 @@ module BitcoinNode
       private
 
       def self.parse_relay(version, payload)
-        ( version >= 70001 and payload ) ? BooleanField.parse(payload) : BooleanField.new(value: true)
+        ( version >= 70001 and payload ) ? BooleanField.parse(payload) : true
       end
 
       def self.unpack_var_string(payload)

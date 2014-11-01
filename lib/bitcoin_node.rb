@@ -1,5 +1,3 @@
-require 'virtus'
-
 require 'bitcoin_node/version'
 require 'bitcoin_node/message'
 

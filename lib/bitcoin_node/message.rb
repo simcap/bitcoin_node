@@ -4,6 +4,57 @@ require 'socket'
 module BitcoinNode
   module Message
 
+    class Payload
+
+      class << self
+        def field(name, type, options = {})
+          define_method(name) do
+            instance_fields[name]
+          end
+
+          define_method("#{name}=") do |value|
+            if type === value
+              instance_fields[name] = value
+            else
+              instance_fields[name] = type.new(value)
+            end
+          end
+
+          fields << name
+          defaults[name] = options[:default] if options[:default]
+        end
+
+        def defaults
+          @defaults ||= {}
+        end
+
+        def fields
+          @fields ||= []
+        end
+      end
+
+      def initialize(attributes)
+        attributes.each do |k,v|
+          self.send("#{k}=", v) 
+        end
+        missings = self.class.fields - attributes.keys
+        missings.each do |k|
+          self.send("#{k}=", self.class.defaults[k])
+        end
+      end
+
+      def raw
+        ordered = instance_fields.values_at(*self.class.fields)
+        ordered.map(&:pack).join
+      end
+
+      def instance_fields
+        @instance_fields ||= {}
+      end
+
+    end
+
+
     def self.pack_var_int(i)
       if i < 0xfd; [ i].pack("C")
       elsif i <= 0xffff; [0xfd, i].pack("Cv")
@@ -22,22 +73,29 @@ module BitcoinNode
       end
     end
 
-    class Payload
-      include Virtus.model
-    end
+    class AddressField 
 
-    class AddressField
-      include Virtus.model
+      attr_reader :port, :host
 
-      values do
-        attribute :port, Integer
-        attribute :host
+      def initialize(values)
+        @port = values.fetch(:port)
+        @host = values.fetch(:host)
       end
 
       def pack
-        sockaddr = Socket.pack_sockaddr_in(port, host)
+        sockaddr = Socket.pack_sockaddr_in(@port, @host)
         p, h = sockaddr[2...4], sockaddr[4...8]
         [[1].pack('Q'), "\x00" * 10, "\xFF\xFF", h, p].join
+      end
+
+      def ==(other)
+        other.instance_of?(self.class) &&
+          port == other.port && host == other.host
+      end
+      alias_method :eql?, :==
+
+      def to_s
+        "#{host}:#{port}"
       end
 
       def self.parse(address)
@@ -46,30 +104,20 @@ module BitcoinNode
       end
     end
 
-    class Integer32Field
-      include Virtus.model
+    class SingleValueField < Struct.new(:value); end
 
-      values do
-        attribute :value, Integer
-      end
-
+    class Integer32Field < SingleValueField
       def pack
         [value].pack('V')  
       end
 
       def self.parse(raw)
         i, remain = raw.unpack('Va*')
-        [new(value: i), remain]
+        [new(i), remain]
       end
     end
 
-    class StringField
-      include Virtus.model
-
-      values do
-        attribute :value, Integer
-      end
-
+    class StringField < SingleValueField
       def pack
         "#{Message.pack_var_int(value.bytesize)}#{value}"
       end
@@ -78,7 +126,7 @@ module BitcoinNode
         size, payload = Message.unpack_var_int(raw)
         if size > 0
           v, payload = payload.unpack("a#{size}a*")
-          [StringField.new(value: v), payload]
+          [StringField.new(v), payload]
         else 
           [nil, payload]
         end
@@ -86,29 +134,18 @@ module BitcoinNode
 
     end
 
-    class Integer64Field
-      include Virtus.model
-
-      values do
-        attribute :value, Integer
-      end
-
+    class Integer64Field < SingleValueField
       def pack
         [value].pack('Q')  
       end
 
       def self.parse(raw)
         i, remain = raw.unpack('Qa*')
-        [new(value: i), remain]
+        [new(i), remain]
       end
     end
 
-    class BooleanField
-      include Virtus.model
-
-      values do
-        attribute :value, Integer
-      end
+    class BooleanField < SingleValueField
 
       def pack
         (value == true) ? [0xFF].pack("C") : [0x00].pack("C")
@@ -116,7 +153,7 @@ module BitcoinNode
 
       def self.parse(raw)
         b = raw.unpack('C')
-        BooleanField.new(value: (b == 0 ? false : true))
+        BooleanField.new(b == 0 ? false : true)
       end
 
     end
