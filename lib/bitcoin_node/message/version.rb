@@ -38,15 +38,6 @@ module BitcoinNode
         ( version >= 70001 and payload ) ? BooleanField.parse(payload) : true
       end
 
-      def self.unpack_var_string(payload)
-        size, payload = BN::Message.unpack_var_int(payload)
-        if size > 0
-          [StringField.new(value: payload.unpack("a#{size}a*")), payload]
-        else 
-          [nil, payload]
-        end
-      end
-
     end
   end
 end 
