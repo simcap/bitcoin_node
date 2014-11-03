@@ -1,23 +1,18 @@
 # encoding: ascii-8bit
-require 'digest'
+$LOAD_PATH.unshift File.expand_path('lib', __dir__)
 
 require 'bitcoin_node'
 
-host = ARGV[0] || (raise 'missing host') 
+host = ARGV[0] || (abort 'Missing host') 
 
-message = BN::Message::Version.new(
+payload = BN::Protocol::Version.new(
   addr_recv: { host: host, port: 8333 },
   addr_from: { host: '127.0.0.1', port: 8333 },
   start_height: 127953,
   relay: true,
-).raw
+)
 
-pkt = "".force_encoding(Encoding.find('ASCII-8BIT'))
-pkt << "\xF9\xBE\xB4\xD9".force_encoding(Encoding.find('ASCII-8BIT')) \
-    << "version".ljust(12, "\x00")[0...12].force_encoding(Encoding.find('ASCII-8BIT')) \
-    << [message.bytesize].pack("V") \
-    << Digest::SHA256.digest(Digest::SHA256.digest(message))[0...4]  \
-    << message.force_encoding(Encoding.find('ASCII-8BIT'))
+message = BN::Protocol::Message.new(payload).raw
 
-client = BN::Client.new(host)
-client.send(pkt)
+client = BN::Client.connect(host)
+client.send(message)

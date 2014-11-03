@@ -1,6 +1,25 @@
 # encoding: ascii-8bit
+require 'digest'
+
 module BitcoinNode
-  module Message
+  module Protocol
+
+    class Message
+
+      def initialize(payload)
+        @payload = payload
+      end
+
+      def raw
+        raw_payload = @payload.raw
+        pkt = "\xF9\xBE\xB4\xD9" << "version".ljust(12, "\x00")[0...12] \
+          << [raw_payload.bytesize].pack("V") \
+          << Digest::SHA256.digest(Digest::SHA256.digest(raw_payload))[0...4]  \
+          << raw_payload
+        pkt.force_encoding(Encoding.find('ASCII-8BIT'))
+      end
+
+    end
 
     class Payload
 
@@ -43,8 +62,10 @@ module BitcoinNode
       end
 
       def raw
-        ordered = instance_fields.values_at(*self.class.fields)
-        ordered.map(&:pack).join
+        @raw ||= begin
+          ordered = instance_fields.values_at(*self.class.fields)
+          ordered.map(&:pack).join
+        end
       end
 
       def instance_fields
@@ -117,11 +138,11 @@ module BitcoinNode
 
     class StringField < SingleValueField
       def pack
-        "#{Message.pack_var_int(value.bytesize)}#{value}"
+        "#{Protocol.pack_var_int(value.bytesize)}#{value}"
       end
 
       def self.parse(raw)
-        size, payload = Message.unpack_var_int(raw)
+        size, payload = Protocol.unpack_var_int(raw)
         if size > 0
           v, payload = payload.unpack("a#{size}a*")
           [StringField.new(v), payload]
@@ -158,4 +179,4 @@ module BitcoinNode
   end
 end
 
-require 'bitcoin_node/message/version'
+require 'bitcoin_node/protocol/version'

@@ -1,7 +1,7 @@
 require 'logger'
 
 require 'bitcoin_node/version'
-require 'bitcoin_node/message'
+require 'bitcoin_node/protocol'
 
 require 'bitcoin_node/client'
 

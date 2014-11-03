@@ -3,6 +3,10 @@ require 'socket'
 module BitcoinNode
   class Client
 
+    def self.connect(host)
+      new(host)
+    end
+
     def initialize(host)
       @socket = TCPSocket.new(host, 8333)
       BN::Logger.info("Connected to #{host}")

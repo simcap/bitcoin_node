@@ -1,11 +1,11 @@
 require 'spec_helper'
 
-describe 'Messages protocol' do
+describe 'Protocol messages' do
 
   it 'sends and parses version correctly' do
     now = Time.now.tv_sec
 
-    version = BN::Message::Version.new(
+    version = BN::Protocol::Version.new(
       timestamp: now,
       addr_recv: { host: '127.0.0.0', port: 8333 },
       addr_from: { host: '192.168.0.1', port: 45555 },
@@ -13,7 +13,7 @@ describe 'Messages protocol' do
       relay: false,
     )
 
-    parsed_version = BN::Message::Version.from_raw(version.raw)
+    parsed_version = BN::Protocol::Version.from_raw(version.raw)
 
     expect(parsed_version.protocol_version.value).to eql 70001
     expect(parsed_version.services.value).to eql 1

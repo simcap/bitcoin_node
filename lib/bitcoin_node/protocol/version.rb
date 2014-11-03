@@ -1,5 +1,5 @@
 module BitcoinNode
-  module Message
+  module Protocol
     class Version < Payload
 
       field :protocol_version, Integer32Field, default: 70001
