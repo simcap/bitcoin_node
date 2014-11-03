@@ -123,7 +123,17 @@ module BitcoinNode
       end
     end
 
-    class SingleValueField < Struct.new(:value); end
+    class SingleValueField < Struct.new(:value)
+
+      def to_s
+        "#<#{self.class.to_s.split('::').last} value=#{value.inspect}>"
+      end
+
+      def inspect
+        to_s
+      end
+
+    end
 
     class Integer32Field < SingleValueField
       def pack

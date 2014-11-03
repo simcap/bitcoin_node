@@ -12,7 +12,7 @@ module BitcoinNode
       field :start_height, Integer32Field
       field :relay, BooleanField, default: true
 
-      def self.from_raw(payload)
+      def self.parse(payload)
         protocol_version, services, timestamp, to, from, nonce, payload = payload.unpack("VQQa26a26Qa*")
         to, from = AddressField.parse(to), AddressField.parse(from)
         user_agent, payload = StringField.parse(payload)

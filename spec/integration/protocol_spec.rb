@@ -13,7 +13,7 @@ describe 'Protocol messages' do
       relay: false,
     )
 
-    parsed_version = BN::Protocol::Version.from_raw(version.raw)
+    parsed_version = BN::Protocol::Version.parse(version.raw)
 
     expect(parsed_version.protocol_version.value).to eql 70001
     expect(parsed_version.services.value).to eql 1
