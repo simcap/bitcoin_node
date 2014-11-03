@@ -10,12 +10,12 @@ describe 'Messages protocol' do
       addr_recv: { host: '127.0.0.0', port: 8333 },
       addr_from: { host: '192.168.0.1', port: 45555 },
       start_height: 127953,
-      relay: true,
+      relay: false,
     )
 
     parsed_version = BN::Message::Version.from_raw(version.raw)
 
-    expect(parsed_version.protocol_version.value).to eql 7001
+    expect(parsed_version.protocol_version.value).to eql 70001
     expect(parsed_version.services.value).to eql 1
     expect(parsed_version.timestamp).to eql(version.timestamp)
     expect(parsed_version.addr_recv).to eql(version.addr_recv)

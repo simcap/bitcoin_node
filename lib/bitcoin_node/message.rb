@@ -1,6 +1,4 @@
 # encoding: ascii-8bit
-require 'socket'
-
 module BitcoinNode
   module Message
 
@@ -39,7 +37,8 @@ module BitcoinNode
         end
         missings = self.class.fields - attributes.keys
         missings.each do |k|
-          self.send("#{k}=", self.class.defaults[k])
+          d = self.class.defaults[k]
+          self.send("#{k}=", Proc === d ? d.call : d)
         end
       end
 
@@ -53,7 +52,6 @@ module BitcoinNode
       end
 
     end
-
 
     def self.pack_var_int(i)
       if i < 0xfd; [ i].pack("C")
@@ -152,8 +150,8 @@ module BitcoinNode
       end
 
       def self.parse(raw)
-        b = raw.unpack('C')
-        BooleanField.new(b == 0 ? false : true)
+        b, remain = raw.unpack('C')
+        [BooleanField.new(b == 0 ? false : true), remain]
       end
 
     end
