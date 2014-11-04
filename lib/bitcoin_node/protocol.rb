@@ -96,10 +96,10 @@ module BitcoinNode
     end
 
     def self.unpack_var_int(payload)
-      case payload.unpack("C")[0] # TODO add test cases
+      case payload.unpack("C")[0]
       when 0xfd; payload.unpack("xva*")
       when 0xfe; payload.unpack("xVa*")
-      when 0xff; payload.unpack("xQa*") # TODO add little-endian version of Q
+      when 0xff; payload.unpack("xQa*")
       else; payload.unpack("Ca*")
       end
     end
