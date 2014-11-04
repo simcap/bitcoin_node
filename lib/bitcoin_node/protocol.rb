@@ -6,13 +6,16 @@ module BitcoinNode
 
     class Message
 
+      attr_reader :command
+
       def initialize(payload)
         @payload = payload
+        @command = payload.name
       end
 
       def raw
         raw_payload = @payload.raw
-        pkt = "\xF9\xBE\xB4\xD9" << "version".ljust(12, "\x00")[0...12] \
+        pkt = "\xF9\xBE\xB4\xD9" << command.ljust(12, "\x00")[0...12] \
           << [raw_payload.bytesize].pack("V") \
           << Digest::SHA256.digest(Digest::SHA256.digest(raw_payload))[0...4]  \
           << raw_payload
@@ -50,7 +53,7 @@ module BitcoinNode
         end
       end
 
-      def initialize(attributes)
+      def initialize(attributes = {})
         attributes.each do |k,v|
           self.send("#{k}=", v) 
         end
@@ -68,9 +71,18 @@ module BitcoinNode
         end
       end
 
+      def name
+        self.class.name.split('::').last.downcase 
+      end
+
       def instance_fields
         @instance_fields ||= {}
       end
+
+      def to_s
+        @instance_fields.inspect
+      end
+      alias_method :inspect, :to_s
 
     end
 
@@ -190,3 +202,4 @@ module BitcoinNode
 end
 
 require 'bitcoin_node/protocol/version'
+require 'bitcoin_node/protocol/verack'

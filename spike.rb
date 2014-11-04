@@ -12,7 +12,7 @@ payload = BN::Protocol::Version.new(
   relay: true,
 )
 
-message = BN::Protocol::Message.new(payload).raw
+message = BN::Protocol::Message.new(payload)
 
 client = BN::Client.connect(host)
-client.send(message)
+client.send(message.raw)
