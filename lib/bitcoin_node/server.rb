@@ -14,7 +14,7 @@ module BitcoinNode
     end
 
     def run
-      loop { async.read_message @server.accept }
+      loop { async.accept_connection @server.accept }
     end
 
     def shutdown
@@ -23,13 +23,19 @@ module BitcoinNode
 
     private
 
-    def read_message(socket)
+    def accept_connection(socket)
       _, port, host = socket.peeraddr
       BN::ServerLogger.info("Connection received from #{host}:#{port}")
+      loop { handle_messages(socket) }
+    end
+
+    def handle_messages(socket)
+      _, port, host = socket.peeraddr
       response = socket.readpartial(1024)
       network, command, length, checksum = response.unpack('a4A12Va4')
       payload = response[24...(24 + length)]
       BN::ServerLogger.info("Received #{response.bytesize} bytes - Payload '#{command}' of #{payload.bytesize} bytes")
+
       if command == 'version'
         payload = BN::Protocol::Version.new(
           addr_recv: { host: '127.0.0.1', port: port },
@@ -40,6 +46,9 @@ module BitcoinNode
 
         version = BN::Protocol::Message.new(payload)
         socket.write(version.raw)
+      end
+
+      if command == 'verack'
         verack = BN::Protocol::Message.new(BN::Protocol::Verack.new)
         socket.write(verack.raw)
       end
