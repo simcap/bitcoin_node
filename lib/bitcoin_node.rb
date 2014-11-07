@@ -3,10 +3,9 @@
 require 'logger'
 
 require 'bitcoin_node/version'
-require 'bitcoin_node/protocol'
 
-require 'bitcoin_node/client'
-require 'bitcoin_node/server'
+require 'bitcoin_node/protocol'
+require 'bitcoin_node/p2p'
 
 
 module BitcoinNode

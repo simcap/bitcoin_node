@@ -5,8 +5,8 @@ describe 'Version handshake' do
   let(:port) { 3333 } 
 
   it 'peers exchanges version properly' do
-    server = BN::Server.new
-    client = BN::Client.connect('localhost', port)
+    server = BN::P2p::Server.new
+    client = BN::P2p::Client.connect('localhost', port)
 
     payload = BN::Protocol::Version.new(
       addr_recv: { host: '127.0.0.1', port: port },
