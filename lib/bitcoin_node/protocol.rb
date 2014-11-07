@@ -1,10 +1,48 @@
-# encoding: ascii-8bit
+# coding: ascii-8bit
 require 'digest'
 
 module BitcoinNode
   module Protocol
 
+    class Header
+
+      def initialize(payload)
+        @payload = payload
+      end
+
+      def raw
+        @raw ||= [raw_network, raw_command, raw_length, raw_checksum_head].join
+      end
+
+      private 
+
+      def raw_network
+        BitcoinNode.network
+      end
+
+      def raw_command
+        @payload.name.ljust(12, "\x00")[0...12]
+      end
+
+      def raw_length
+        [@payload.bytesize].pack("V")
+      end
+
+      def raw_checksum_head
+        Digest::SHA256.digest(Digest::SHA256.digest(@payload.raw))[0...4]
+      end
+
+    end
+
     class Message
+
+      def self.ping
+        new(BN::Protocol::Ping.new)
+      end
+
+      def self.pong(nonce)
+        new(BN::Protocol::Pong.new(nonce: nonce))
+      end
 
       attr_reader :command
 
@@ -14,12 +52,13 @@ module BitcoinNode
       end
 
       def raw
-        raw_payload = @payload.raw
-        pkt = "\xF9\xBE\xB4\xD9" << command.ljust(12, "\x00")[0...12] \
-          << [raw_payload.bytesize].pack("V") \
-          << Digest::SHA256.digest(Digest::SHA256.digest(raw_payload))[0...4]  \
-          << raw_payload
-        pkt.force_encoding(Encoding.find('ASCII-8BIT'))
+        @raw ||= begin
+          [Header.new(@payload).raw, @payload.raw].join.force_encoding(Encoding.find('ASCII-8BIT'))
+        end
+      end
+
+      def bytesize
+        raw.bytesize
       end
 
     end
@@ -71,6 +110,10 @@ module BitcoinNode
         end
       end
 
+      def bytesize
+        raw.bytesize
+      end
+
       def name
         self.class.name.split('::').last.downcase 
       end
@@ -79,10 +122,9 @@ module BitcoinNode
         @instance_fields ||= {}
       end
 
-      def to_s
+      def inspect
         @instance_fields.inspect
       end
-      alias_method :inspect, :to_s
 
     end
 
@@ -203,3 +245,4 @@ end
 
 require 'bitcoin_node/protocol/version'
 require 'bitcoin_node/protocol/verack'
+require 'bitcoin_node/protocol/ping_pong'

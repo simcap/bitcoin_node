@@ -16,8 +16,8 @@ describe 'Version handshake' do
     )
 
     message = BN::Protocol::Message.new(payload)
-    client.send(message.raw)
-
+    client.send(message)
+    client.send(BN::Protocol::Message.ping)
   end
 
 end

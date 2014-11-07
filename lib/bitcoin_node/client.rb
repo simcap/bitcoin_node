@@ -15,8 +15,12 @@ module BitcoinNode
     end
 
     def send(message)
-      BN::ClientLogger.info("Sending #{message.bytesize} bytes")
-      @socket.write(message)
+      type, content = 'raw', message
+      if BN::Protocol::Message === message
+        type, content = message.command, message.raw
+      end
+      BN::ClientLogger.info("Sending #{type} (#{message.bytesize} bytes)")
+      @socket.write(content)
       loop {
         @buffer << @socket.readpartial(64)
         if (handler = ConnectionHandler.new(self, @buffer)).parseable?
@@ -24,7 +28,6 @@ module BitcoinNode
           break
         end
       }
-      close!
     rescue IOError => e
       BN::ClientLogger.error(e.message)
     end
@@ -43,7 +46,6 @@ module BitcoinNode
         @buffer = buffer  
         @network, @command, @expected_length, @checksum = @buffer.unpack('a4A12Va4')
         @payload = @buffer[HEADER_SIZE...(HEADER_SIZE + @expected_length)]
-        BN::ClientLogger.info("Chunk of #{@buffer.bytesize} bytes")
       end
 
       def parseable?
@@ -51,9 +53,10 @@ module BitcoinNode
       end
 
       def parse
+        BN::ClientLogger.info("Received #{@command} (#{@buffer.bytesize} bytes)")
         message = Parser.new(@command, @payload).parse
         @buffer.clear
-        @client.send(message.raw) if message
+        @client.send(message) if message
       end
     end
 
@@ -65,7 +68,7 @@ module BitcoinNode
 
       def parse
         if @command == 'version'
-          p BN::Protocol::Version.parse(@payload)
+          puts BN::Protocol::Version.parse(@payload)
           return BN::Protocol::Message.new(BN::Protocol::Verack.new)
         end
 

@@ -15,4 +15,6 @@ payload = BN::Protocol::Version.new(
 message = BN::Protocol::Message.new(payload)
 
 client = BN::Client.connect(host)
-client.send(message.raw)
+client.send(message)
+client.send(BN::Protocol::Message.ping)
+

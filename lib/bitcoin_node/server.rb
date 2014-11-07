@@ -6,8 +6,6 @@ module BitcoinNode
     include Celluloid::IO
     finalizer :shutdown
 
-    attr_reader :last_message
-
     def initialize(port = 3333)
       @server = TCPServer.new('localhost', port)
       async.run
@@ -34,7 +32,7 @@ module BitcoinNode
       response = socket.readpartial(1024)
       network, command, length, checksum = response.unpack('a4A12Va4')
       payload = response[24...(24 + length)]
-      BN::ServerLogger.info("Received #{response.bytesize} bytes - Payload '#{command}' of #{payload.bytesize} bytes")
+      BN::ServerLogger.info("Received #{command} (#{response.bytesize} bytes)")
 
       if command == 'version'
         payload = BN::Protocol::Version.new(
@@ -45,12 +43,21 @@ module BitcoinNode
         )
 
         version = BN::Protocol::Message.new(payload)
+        BN::ServerLogger.info("Sending version")
         socket.write(version.raw)
       end
 
       if command == 'verack'
         verack = BN::Protocol::Message.new(BN::Protocol::Verack.new)
+        BN::ServerLogger.info("Sending verack")
         socket.write(verack.raw)
+      end
+
+      if command == 'ping'
+        ping_nonce = BN::Protocol::Ping.parse(payload).nonce.value
+        pong = BN::Protocol::Message.pong(ping_nonce)
+        BN::ServerLogger.info("Sending pong")
+        socket.write(pong.raw)
       end
     end
 
