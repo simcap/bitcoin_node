@@ -16,9 +16,10 @@ module BitcoinNode
       end
 
       def send(message)
-        type, content = 'raw', message
         if BN::Protocol::Message === message
           type, content = message.command, message.raw
+        else
+          type, content = 'raw', message
         end
         BN::ClientLogger.info("Sending #{type} (#{message.bytesize} bytes)")
         @socket.write(content)
