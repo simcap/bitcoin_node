@@ -59,7 +59,7 @@ module BitcoinNode
         @raw ||= begin
           [Header.new(@payload).raw, @payload.raw]
             .join
-            .force_encoding(Encoding.find('ASCII-8BIT'))
+            .force_encoding('binary')
         end
       end
 

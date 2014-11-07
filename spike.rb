@@ -14,7 +14,7 @@ payload = BN::Protocol::Version.new(
 
 message = BN::Protocol::Message.new(payload)
 
-client = BN::Client.connect(host)
+client = BN::P2P::Client.connect(host)
 client.send(message)
 client.send(BN::Protocol::Message.ping)
 
