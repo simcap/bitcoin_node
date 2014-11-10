@@ -6,10 +6,10 @@ module BitcoinNode
       field :services, Integer64Field, default: 1
       field :timestamp, Integer64Field, default: lambda { Time.now.tv_sec }
       field :addr_recv, AddressField
-      field :addr_from, AddressField
+      field :addr_from, AddressField, default: { host: '127.0.0.1', port: '8333' }
       field :nonce, Integer64Field, default: lambda { rand(0xffffffffffffffff) }
       field :user_agent, StringField, default: "/bitcoin_node:#{BitcoinNode::VERSION}/"
-      field :start_height, Integer32Field
+      field :start_height, Integer32Field, default: 0
       field :relay, BooleanField, default: true
 
       def self.parse(payload)
@@ -17,7 +17,7 @@ module BitcoinNode
         to, from = AddressField.parse(to), AddressField.parse(from)
         user_agent, payload = StringField.parse(payload)
         last_block, payload = Integer32Field.parse(payload)
-        relay, _ = parse_relay(protocol_version, payload)
+        relay, _ = parse_relay(protocol_version, payload) if payload
 
         new(
           protocol_version: protocol_version,
@@ -35,7 +35,7 @@ module BitcoinNode
       private
 
       def self.parse_relay(version, payload)
-        ( version >= 70001 and payload ) ? BooleanField.parse(payload) : true
+        version >= 70001 ? BooleanField.parse(payload) : true
       end
 
     end

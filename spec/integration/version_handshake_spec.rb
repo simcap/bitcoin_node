@@ -9,10 +9,7 @@ describe 'Version handshake' do
     client = BN::P2p::Client.connect('localhost', port)
 
     payload = BN::Protocol::Version.new(
-      addr_recv: { host: '127.0.0.1', port: port },
-      addr_from: { host: '127.0.0.1', port: 8333 },
-      start_height: 127953,
-      relay: true,
+      addr_recv: { host: '127.0.0.1', port: port }
     )
 
     message = BN::Protocol::Message.new(payload)

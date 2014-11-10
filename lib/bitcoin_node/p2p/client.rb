@@ -9,8 +9,7 @@ module BitcoinNode
       end
 
       def initialize(host, port = 8333)
-        @host = host
-        @buffer = String.new
+        @host, @buffer = host, String.new
         @socket = TCPSocket.new(host, port)
         BN::ClientLogger.info("Connected to #{host}")
       end
@@ -44,8 +43,7 @@ module BitcoinNode
         HEADER_SIZE = 24 
 
         def initialize(client, buffer)
-          @client = client
-          @buffer = buffer  
+          @client, @buffer = client, buffer  
           @network, @command, @expected_length, @checksum = @buffer.unpack('a4A12Va4')
           @payload = @buffer[HEADER_SIZE...(HEADER_SIZE + @expected_length)]
         end
@@ -70,7 +68,7 @@ module BitcoinNode
 
         def parse
           if @command == 'version'
-            puts BN::Protocol::Version.parse(@payload)
+            BN::Protocol::Version.parse(@payload)
             return BN::Protocol::Message.verack
           end
 
