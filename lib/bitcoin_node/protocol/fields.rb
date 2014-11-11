@@ -4,34 +4,16 @@ require 'digest'
 module BitcoinNode
   module Protocol
 
-    class AddressField 
-
-      attr_reader :port, :host
-
-      def initialize(values)
-        @port = values.fetch(:port)
-        @host = values.fetch(:host)
-      end
-
+    AddressField = Struct.new(:host, :port) do
       def pack
-        sockaddr = Socket.pack_sockaddr_in(@port, @host)
+        sockaddr = Socket.pack_sockaddr_in(port, host)
         p, h = sockaddr[2...4], sockaddr[4...8]
         [[1].pack('Q'), "\x00" * 10, "\xFF\xFF", h, p].join
       end
 
-      def ==(other)
-        other.instance_of?(self.class) &&
-          port == other.port && host == other.host
-      end
-      alias_method :eql?, :==
-
-      def to_s
-        "#{host}:#{port}"
-      end
-
       def self.parse(address)
         ip, port, remain = address.unpack("x8x12a4na*")
-        [new(host: ip.unpack("C*").join('.'), port: port), remain]
+        [new(ip.unpack("C*").join('.'), port), remain]
       end
     end
 

@@ -6,9 +6,8 @@ describe 'Protocol messages' do
     now = Time.now.tv_sec
 
     version = BN::Protocol::Version.new(
-      timestamp: now,
-      addr_recv: { host: '127.0.0.0', port: 8333 },
-      addr_from: { host: '192.168.0.1', port: 45555 },
+      timestamp: now, addr_recv: ['127.0.0.0', 8333],
+      addr_from: ['192.168.0.1', 45555],
       start_height: 127953,
       relay: false,
     )

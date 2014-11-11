@@ -85,7 +85,7 @@ module BitcoinNode
             if type === value
               instance_fields[name] = value
             else
-              instance_fields[name] = type.new(value)
+              instance_fields[name] = type.new(*Array(value))
             end
           end
 

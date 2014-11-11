@@ -6,7 +6,7 @@ module BitcoinNode
       field :services, Integer64Field, default: 1
       field :timestamp, Integer64Field, default: lambda { Time.now.tv_sec }
       field :addr_recv, AddressField
-      field :addr_from, AddressField, default: { host: '127.0.0.1', port: '8333' }
+      field :addr_from, AddressField, default: ['127.0.0.1', '8333']
       field :nonce, Integer64Field, default: lambda { rand(0xffffffffffffffff) }
       field :user_agent, StringField, default: "/bitcoin_node:#{BitcoinNode::VERSION}/"
       field :start_height, Integer32Field, default: 0
