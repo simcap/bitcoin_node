@@ -48,6 +48,10 @@ module BitcoinNode
         new(BN::Protocol::Verack.new)
       end
 
+      def self.getaddr
+        new(BN::Protocol::Getaddr.new)
+      end
+
       attr_reader :command
 
       def initialize(payload)
@@ -132,24 +136,6 @@ module BitcoinNode
         @instance_fields.inspect
       end
 
-    end
-
-    def self.pack_var_int(i)
-      if i < 0xfd; [ i].pack("C")
-      elsif i <= 0xffff; [0xfd, i].pack("Cv")
-      elsif i <= 0xffffffff; [0xfe, i].pack("CV")
-      elsif i <= 0xffffffffffffffff; [0xff, i].pack("CQ")
-      else raise "int(#{i}) too large!"
-      end
-    end
-
-    def self.unpack_var_int(payload)
-      case payload.unpack("C")[0]
-      when 0xfd; payload.unpack("xva*")
-      when 0xfe; payload.unpack("xVa*")
-      when 0xff; payload.unpack("xQa*")
-      else; payload.unpack("Ca*")
-      end
     end
   end
 end

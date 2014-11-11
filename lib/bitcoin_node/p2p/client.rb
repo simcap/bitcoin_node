@@ -76,6 +76,18 @@ module BitcoinNode
             BN::ClientLogger.info('Version handshake finished')
             nil
           end
+
+          if @command == 'addr'
+            BN::ClientLogger.info('Parsing addresses')
+            BN::Protocol::Addr.parse(@payload)
+            nil
+          end
+
+          if @command == 'inv'
+            BN::ClientLogger.info('Parsing inv')
+            BN::Protocol::Inv.parse(@payload)
+            nil
+          end
         end
 
       end

@@ -30,8 +30,30 @@ module BitcoinNode
       end
 
       def self.parse(address)
-        ip, port = address.unpack("x8x12a4n")
-        new(host: ip.unpack("C*").join('.'), port: port)
+        ip, port, remain = address.unpack("x8x12a4na*")
+        [new(host: ip.unpack("C*").join('.'), port: port), remain]
+      end
+    end
+
+    class TimedAddressField < AddressField
+
+      def pack
+        
+      end
+
+      def self.parse(address)
+        time, service, ip, port, remain = address.unpack('VQx12a4na*')
+        [new(host: ip.unpack("C*").join('.'), port: port), remain]
+      end
+    end
+
+    class AddressesListField
+
+      def self.parse(count, payload)
+        Array.new(count) do
+          addr, payload = TimedAddressField.parse(payload)
+          addr
+        end
       end
     end
 
@@ -42,6 +64,37 @@ module BitcoinNode
 
       def inspect
         to_s
+      end
+    end
+
+    class VariableIntegerField < SingleValueField
+      def pack
+        if value < 0xfd; [value].pack("C")
+        elsif value <= 0xffff; [0xfd, value].pack("Cv")
+        elsif value <= 0xffffffff; [0xfe, value].pack("CV")
+        elsif value <= 0xffffffffffffffff; [0xff, value].pack("CQ")
+        else raise "Cannot pack integer #{value}"
+        end
+      end
+
+      def self.parse(raw)
+        case raw.unpack("C")[0]
+        when 0xfd; raw.unpack("xva*")
+        when 0xfe; raw.unpack("xVa*")
+        when 0xff; raw.unpack("xQa*")
+        else; raw.unpack("Ca*")
+        end
+      end
+    end
+
+    class InventoryVectorField < SingleValueField
+      def pack
+        [value].pack('V') 
+      end
+
+      def self.parse(raw)
+        inv, remain = raw.unpack('Va32')
+        [new(inv), remain]
       end
     end
 
@@ -58,11 +111,11 @@ module BitcoinNode
 
     class StringField < SingleValueField
       def pack
-        "#{Protocol.pack_var_int(value.bytesize)}#{value}"
+        "#{VariableIntegerField.new(value.bytesize).pack}#{value}"
       end
 
       def self.parse(raw)
-        size, payload = Protocol.unpack_var_int(raw)
+        size, payload = VariableIntegerField.parse(raw)
         if size > 0
           v, payload = payload.unpack("a#{size}a*")
           [StringField.new(v), payload]

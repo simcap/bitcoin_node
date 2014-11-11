@@ -14,7 +14,8 @@ module BitcoinNode
 
       def self.parse(payload)
         protocol_version, services, timestamp, to, from, nonce, payload = payload.unpack("VQQa26a26Qa*")
-        to, from = AddressField.parse(to), AddressField.parse(from)
+        to, = AddressField.parse(to)
+        from, = AddressField.parse(from)
         user_agent, payload = StringField.parse(payload)
         last_block, payload = Integer32Field.parse(payload)
         relay, _ = parse_relay(protocol_version, payload) if payload
@@ -40,7 +41,32 @@ module BitcoinNode
 
     end
 
+    class Addr < Payload
+      field :count, VariableIntegerField
+      field :addr_list, AddressesListField
+
+      def self.parse(raw)
+        count, payload = VariableIntegerField.parse(raw) 
+        AddressesListField.parse(count, payload)
+      end
+    end
+
+    class Inv < Payload
+      field :count, VariableIntegerField
+      field :inventory, InventoryVectorField
+
+      def self.parse(raw)
+        count, payload = VariableIntegerField.parse(raw)  
+        Array.new(count) do
+          inv, payload = InventoryVectorField.parse(payload)
+          inv
+        end
+      end
+    end
+
     class Verack < Payload; end
+
+    class Getaddr < Payload; end
 
     class Ping < Payload
       field :nonce, Integer64Field, default: lambda { rand(0xffffffffffffffff) }
