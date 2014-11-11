@@ -36,13 +36,7 @@ module BitcoinNode
         BN::ServerLogger.info("Received #{command} (#{response.bytesize} bytes)")
 
         if command == 'version'
-          payload = BN::Protocol::Version.new(
-            addr_recv: { host: '127.0.0.1', port: port },
-            addr_from: { host: '127.0.0.1', port: 8333 },
-            start_height: 127953,
-            relay: true,
-          )
-
+          payload = BN::Protocol::Version.new(addr_recv: ['127.0.0.1', port]) 
           version = BN::Protocol::Message.new(payload)
           BN::ServerLogger.info("Sending version")
           socket.write(version.raw)

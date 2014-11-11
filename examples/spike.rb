@@ -5,9 +5,7 @@ require 'bitcoin_node'
 
 host = ARGV[0] || (abort 'Missing host') 
 
-payload = BN::Protocol::Version.new(
-  addr_recv: { host: host, port: 8333 },
-)
+payload = BN::Protocol::Version.new(addr_recv: [host, 8333])
 
 message = BN::Protocol::Message.new(payload)
 
