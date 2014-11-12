@@ -37,13 +37,13 @@ module BitcoinNode
 
         if command == 'version'
           payload = BN::Protocol::Version.new(addr_recv: ['127.0.0.1', port]) 
-          version = BN::Protocol::Message.new(payload)
+          message = BN::Protocol::Message.new(payload)
           BN::ServerLogger.info("Sending version")
-          socket.write(version.raw)
+          socket.write(message.raw)
         end
 
         if command == 'verack'
-          verack = BN::Protocol::Message.new(BN::Protocol::Verack.new)
+          verack = BN::Protocol::Message.verack
           BN::ServerLogger.info("Sending verack")
           socket.write(verack.raw)
         end

@@ -128,12 +128,14 @@ module BitcoinNode
         self.class.name.split('::').last.downcase 
       end
 
-      def instance_fields
-        @instance_fields ||= {}
-      end
-
       def inspect
         @instance_fields.inspect
+      end
+
+      private 
+
+      def instance_fields
+        @instance_fields ||= {}
       end
 
     end
