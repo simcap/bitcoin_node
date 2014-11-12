@@ -6,15 +6,18 @@ describe 'Version handshake' do
 
   it 'peers exchanges version properly' do
     server = BN::P2p::Server.new
-    client = BN::P2p::Client.connect('localhost', port)
 
-    payload = BN::Protocol::Version.new(
-      addr_recv: ['127.0.0.1', port]
-    )
+    client_probe = BN::P2p::StoreProbe.new
+    client = BN::P2p::Client.connect('localhost', port, client_probe)
 
+    payload = BN::Protocol::Version.new(addr_recv: ['127.0.0.1', port])
     message = BN::Protocol::Message.new(payload)
+
     client.send(message)
     client.send(BN::Protocol::Message.ping)
+
+    expect(client_probe.store[:sending]).to eql %w(version verack ping)
+    expect(client_probe.store[:receiving]).to eql %w(version verack pong)
   end
 
 end

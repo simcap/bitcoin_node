@@ -17,12 +17,7 @@ module BitcoinNode
   end
 
   Logger = ::Logger.new(STDOUT)
-
-  ClientLogger = ::Logger.new(STDOUT)
-  ClientLogger.progname = 'CLIENT'
-
-  ServerLogger = ::Logger.new(STDOUT)
-  ServerLogger.progname = 'SERVER'
+  Logger.progname = 'NODE'
 
 end
 

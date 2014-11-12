@@ -5,5 +5,6 @@ module BitcoinNode
   P2P = P2p
 end
 
+require_relative 'p2p/probe'
 require_relative 'p2p/client'
 require_relative 'p2p/server'

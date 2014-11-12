@@ -7,8 +7,9 @@ module BitcoinNode
       include Celluloid::IO
       finalizer :shutdown
 
-      def initialize(port = 3333)
+      def initialize(port = 3333,  probe = LoggingProbe.new('server'))
         @server = TCPServer.new('localhost', port)
+        @probe  = probe
         async.run
       end
 
@@ -24,7 +25,8 @@ module BitcoinNode
 
       def accept_connection(socket)
         _, port, host = socket.peeraddr
-        BN::ServerLogger.info("Connection received from #{host}:#{port}")
+        @probe << { connection: "#{host}:#{port}" }
+
         loop { handle_messages(socket) }
       end
 
@@ -33,25 +35,25 @@ module BitcoinNode
         response = socket.readpartial(1024)
         network, command, length, checksum = response.unpack('a4A12Va4')
         payload = response[24...(24 + length)]
-        BN::ServerLogger.info("Received #{command} (#{response.bytesize} bytes)")
+        @probe << { receiving: command }
 
         if command == 'version'
           payload = BN::Protocol::Version.new(addr_recv: ['127.0.0.1', port]) 
           message = BN::Protocol::Message.new(payload)
-          BN::ServerLogger.info("Sending version")
+          @probe << { sending: 'version' }
           socket.write(message.raw)
         end
 
         if command == 'verack'
           verack = BN::Protocol::Message.verack
-          BN::ServerLogger.info("Sending verack")
+          @probe << { sending: 'verack' }
           socket.write(verack.raw)
         end
 
         if command == 'ping'
           ping_nonce = BN::Protocol::Ping.parse(payload).nonce.value
           pong = BN::Protocol::Message.pong(ping_nonce)
-          BN::ServerLogger.info("Sending pong")
+          @probe << { sending: 'pong' }
           socket.write(pong.raw)
         end
       end

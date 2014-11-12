@@ -4,27 +4,25 @@ module BitcoinNode
   module P2p
     class Client
 
-      def self.connect(host, port = 8333)
-        new(host, port)
+      def self.connect(host, port = 8333, probe = LoggingProbe.new('client'))
+        new(host, port, probe)
       end
 
-      def initialize(host, port = 8333)
-        @host, @buffer = host, String.new
+      def initialize(host, port = 8333, probe = LoggingProbe.new('client'))
+        @host, @buffer, @probe = host, String.new, probe
         @socket = TCPSocket.new(host, port)
-        BN::ClientLogger.info("Connected to #{host}")
+        @probe << { connected: host }
       end
 
       def send(message)
-        if BN::Protocol::Message === message
-          type, content = message.command, message.raw
-        else
-          type, content = 'raw', message
-        end
-        BN::ClientLogger.info("Sending #{type} (#{message.bytesize} bytes)")
-        @socket.write(content)
+        raise ArgumentError unless BN::Protocol::Message === message
+
+        @probe << { sending: message.command }
+        @socket.write(message.raw)
+
         loop {
           @buffer << @socket.readpartial(64)
-          if (handler = ConnectionHandler.new(self, @buffer)).parseable?
+          if (handler = ConnectionHandler.new(self, @buffer, @probe)).parseable?
             handler.parse
             break
           end
@@ -35,15 +33,15 @@ module BitcoinNode
 
       def close!
         @socket.close
-        BN::ClientLogger.info("Closing connection to #{@host}")
+        @probe << { closed: @host }
       end
 
       class ConnectionHandler
 
         HEADER_SIZE = 24 
 
-        def initialize(client, buffer)
-          @client, @buffer = client, buffer  
+        def initialize(client, buffer, probe = LoggingProbe.new('client'))
+          @client, @buffer, @probe = client, buffer, probe
           @network, @command, @expected_length, @checksum = @buffer.unpack('a4A12Va4')
           @payload = @buffer[HEADER_SIZE...(HEADER_SIZE + @expected_length)]
         end
@@ -53,8 +51,10 @@ module BitcoinNode
         end
 
         def parse
-          BN::ClientLogger.info("Received #{@command} (#{@buffer.bytesize} bytes)")
+          @probe << { receiving: @command }
+
           message = Parser.new(@command, @payload).parse
+
           @buffer.clear
           @client.send(message) if message
         end
@@ -73,18 +73,18 @@ module BitcoinNode
           end
 
           if @command == 'verack'
-            BN::ClientLogger.info('Version handshake finished')
+            BN::Logger.info('Version handshake finished')
             nil
           end
 
           if @command == 'addr'
-            BN::ClientLogger.info('Parsing addresses')
+            BN::Logger.info('Parsing addresses')
             BN::Protocol::Addr.parse(@payload)
             nil
           end
 
           if @command == 'inv'
-            BN::ClientLogger.info('Parsing inv')
+            BN::Logger.info('Parsing inv')
             BN::Protocol::Inv.parse(@payload)
             nil
           end
