@@ -45,14 +45,14 @@ module BitcoinNode
         end
 
         if command == 'verack'
-          verack = BN::Protocol::Message.verack
+          verack = BN::Protocol::Messages.verack
           @probe << { sending: 'verack' }
           socket.write(verack.raw)
         end
 
         if command == 'ping'
           ping_nonce = BN::Protocol::Ping.parse(payload).nonce.value
-          pong = BN::Protocol::Message.pong(ping_nonce)
+          pong = BN::Protocol::Messages.pong(ping_nonce)
           @probe << { sending: 'pong' }
           socket.write(pong.raw)
         end

@@ -14,7 +14,7 @@ describe 'Version handshake' do
     message = BN::Protocol::Message.new(payload)
 
     client.send(message)
-    client.send(BN::Protocol::Message.ping)
+    client.send(BN::Protocol::Messages.ping)
 
     expect(client_probe.store[:sending]).to eql %w(version verack ping)
     expect(client_probe.store[:receiving]).to eql %w(version verack pong)

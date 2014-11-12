@@ -3,7 +3,6 @@ require 'digest'
 
 module BitcoinNode
   module Protocol
-
     MessageParsingError = Class.new(StandardError)
     IncompleteMessageError = Class.new(MessageParsingError)
     InvalidChecksumError = Class.new(MessageParsingError)
@@ -49,29 +48,13 @@ module BitcoinNode
     end
 
     class Message
-      def self.ping
-        new(BN::Protocol::Ping.new)
-      end
-
-      def self.pong(nonce)
-        new(BN::Protocol::Pong.new(nonce: nonce))
-      end
-
-      def self.verack
-        new(BN::Protocol::Verack.new)
-      end
-
-      def self.getaddr
-        new(BN::Protocol::Getaddr.new)
-      end
-
-      def self.extract_raw_payload(raw)
-        network, command, expected_length, checksum = raw.unpack('a4A12Va4')
-        payload = raw[Header::SIZE...(Header::SIZE + expected_length)]
+      def self.validate(raw_message)
+        network, command, expected_length, checksum = raw_message.unpack('a4A12Va4')
+        payload = raw_message[Header::SIZE...(Header::SIZE + expected_length)]
         if (actual = payload.bytesize) < expected_length
-          raise BN::Protocol::IncompleteMessageError.new("Incomplete message (missing #{expected_length - actual} bytes)")
+          raise BN::P::IncompleteMessageError.new("Incomplete message (missing #{expected_length - actual} bytes)")
         elsif checksum != BN::Protocol.digest(payload)[0...4]
-          raise BN::Protocol::InvalidChecksumError.new("Invalid checksum on command #{command}")
+          raise BN::P::InvalidChecksumError.new("Invalid checksum on command #{command}")
         else
           [payload, command]
         end
@@ -80,6 +63,7 @@ module BitcoinNode
       attr_reader :command
 
       def initialize(payload)
+        raise ArgumentError, 'Expected Payload type' unless Payload === payload
         @payload = payload
         @command = payload.name
       end
@@ -98,8 +82,27 @@ module BitcoinNode
 
     end
 
-    class Payload
+    module Messages
+      module_function
 
+      def ping
+        BN::P::Message.new(BN::Protocol::Ping.new)
+      end
+
+      def pong(nonce)
+        BN::P::Message.new(BN::Protocol::Pong.new(nonce: nonce))
+      end
+
+      def verack
+        BN::P::Message.new(BN::Protocol::Verack.new)
+      end
+
+      def getaddr
+        BN::P::Message.new(BN::Protocol::Getaddr.new)
+      end
+    end
+
+    class Payload
       class << self
         def field(name, type, options = {})
           define_method(name) do
@@ -180,7 +183,6 @@ module BitcoinNode
       def instance_fields
         @instance_fields ||= {}
       end
-
     end
   end
 end

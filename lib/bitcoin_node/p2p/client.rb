@@ -22,7 +22,7 @@ module BitcoinNode
         loop {
           @buffer << @socket.readpartial(64)
           handler = CommandHandler.new(self, @buffer, @probe)
-          if handler.extract_payload
+          if handler.valid_message?
             handler.parse
             break
           end
@@ -50,8 +50,8 @@ module BitcoinNode
           @client.send(message) if message
         end
 
-        def extract_payload
-          @payload, @command = BN::Protocol::Message.extract_raw_payload(@buffer)
+        def valid_message?
+          @payload, @command = BN::Protocol::Message.validate(@buffer)
         rescue BN::P::IncompleteMessageError, BN::P::InvalidChecksumError => e
           BN::Logger.info(e.message)
           false
@@ -66,7 +66,7 @@ module BitcoinNode
         def parse
           if @command == 'version'
             BN::Protocol::Version.parse(@payload)
-            return BN::Protocol::Message.verack
+            return BN::Protocol::Messages.verack
           end
 
           if @command == 'verack'

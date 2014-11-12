@@ -11,6 +11,6 @@ message = BN::Protocol::Message.new(payload)
 
 client = BN::P2P::Client.connect(host)
 client.send(message)
-client.send(BN::Protocol::Message.ping)
-client.send(BN::Protocol::Message.getaddr)
+client.send(BN::Protocol::Messages.ping)
+client.send(BN::Protocol::Messages.getaddr)
 
