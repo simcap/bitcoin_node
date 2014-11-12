@@ -14,7 +14,7 @@ module BitcoinNode
     class Header
       SIZE = 24
 
-      def self.build(payload)
+      def self.build_from(payload)
         new(payload)
       end
 
@@ -70,7 +70,7 @@ module BitcoinNode
 
       def raw
         @raw ||= begin
-          [Header.build(@payload).raw, @payload.raw]
+          [Header.build_from(@payload).raw, @payload.raw]
             .join
             .force_encoding('binary')
         end
