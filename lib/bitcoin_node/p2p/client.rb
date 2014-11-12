@@ -3,7 +3,6 @@ require 'socket'
 module BitcoinNode
   module P2p
     class Client
-
       def self.connect(host, port = 8333, probe = LoggingProbe.new('client'))
         new(host, port, probe)
       end
@@ -38,9 +37,6 @@ module BitcoinNode
       end
 
       class CommandHandler
-
-        HEADER_SIZE = 24 
-
         def initialize(client, buffer, probe)
           @client, @buffer, @probe = client, buffer, probe
         end
@@ -56,14 +52,13 @@ module BitcoinNode
 
         def extract_payload
           @payload, @command = BN::Protocol::Message.extract_raw_payload(@buffer)
-          true
-        rescue BN::Protocol::IncompleteMessageError, BN::Protocol::InvalidChecksumError
+        rescue BN::P::IncompleteMessageError, BN::P::InvalidChecksumError => e
+          BN::Logger.info(e.message)
           false
         end
       end
 
       class Parser
-
         def initialize(command, payload)
           @command, @payload = command, payload
         end

@@ -22,3 +22,4 @@ module BitcoinNode
 end
 
 BN = BitcoinNode
+BN::P = BN::Protocol

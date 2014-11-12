@@ -49,7 +49,6 @@ module BitcoinNode
     end
 
     class Message
-
       def self.ping
         new(BN::Protocol::Ping.new)
       end
@@ -69,10 +68,10 @@ module BitcoinNode
       def self.extract_raw_payload(raw)
         network, command, expected_length, checksum = raw.unpack('a4A12Va4')
         payload = raw[Header::SIZE...(Header::SIZE + expected_length)]
-        if payload.bytesize < expected_length
-          raise BN::Protocol::IncompleteMessageError 
+        if (actual = payload.bytesize) < expected_length
+          raise BN::Protocol::IncompleteMessageError.new("Incomplete message (missing #{expected_length - actual} bytes)")
         elsif checksum != BN::Protocol.digest(payload)[0...4]
-          raise BN::Protocol::InvalidChecksumError
+          raise BN::Protocol::InvalidChecksumError.new("Invalid checksum on command #{command}")
         else
           [payload, command]
         end
