@@ -89,7 +89,7 @@ module BitcoinNode
             end
           end
 
-          fields << name
+          fields[name] = type
           defaults[name] = options[:default] if options[:default]
         end
 
@@ -98,7 +98,25 @@ module BitcoinNode
         end
 
         def fields
-          @fields ||= []
+          @fields ||= {}
+        end
+
+        def field_names
+          fields.keys
+        end
+
+        def parse(payload)
+          result = fields.inject({}) do |memo, (field_name, type)|
+            custom_parse_method = "parse_#{field_name.to_s}"
+            parsed, payload = if respond_to?(custom_parse_method)
+              public_send(custom_parse_method, payload, memo)
+            else
+              type.parse(payload)
+            end
+            memo[field_name] = parsed
+            memo
+          end
+          new(result)
         end
       end
 
@@ -106,7 +124,7 @@ module BitcoinNode
         attributes.each do |k,v|
           self.send("#{k}=", v) 
         end
-        missings = self.class.fields - attributes.keys
+        missings = self.class.field_names - attributes.keys
         missings.each do |k|
           d = self.class.defaults[k]
           self.send("#{k}=", Proc === d ? d.call : d)
@@ -115,7 +133,7 @@ module BitcoinNode
 
       def raw
         @raw ||= begin
-          ordered = instance_fields.values_at(*self.class.fields)
+          ordered = instance_fields.values_at(*self.class.field_names)
           ordered.map(&:pack).join
         end
       end
