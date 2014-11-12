@@ -22,7 +22,8 @@ module BitcoinNode
 
         loop {
           @buffer << @socket.readpartial(64)
-          if (handler = ConnectionHandler.new(self, @buffer, @probe)).parseable?
+          handler = CommandHandler.new(self, @buffer, @probe)
+          if handler.extract_payload
             handler.parse
             break
           end
@@ -36,18 +37,12 @@ module BitcoinNode
         @probe << { closed: @host }
       end
 
-      class ConnectionHandler
+      class CommandHandler
 
         HEADER_SIZE = 24 
 
-        def initialize(client, buffer, probe = LoggingProbe.new('client'))
+        def initialize(client, buffer, probe)
           @client, @buffer, @probe = client, buffer, probe
-          @network, @command, @expected_length, @checksum = @buffer.unpack('a4A12Va4')
-          @payload = @buffer[HEADER_SIZE...(HEADER_SIZE + @expected_length)]
-        end
-
-        def parseable?
-          @payload.bytesize < @expected_length ? false : true
         end
 
         def parse
@@ -57,6 +52,13 @@ module BitcoinNode
 
           @buffer.clear
           @client.send(message) if message
+        end
+
+        def extract_payload
+          @payload, @command = BN::Protocol::Message.extract_raw_payload(@buffer)
+          true
+        rescue BN::Protocol::IncompleteMessageError, BN::Protocol::InvalidChecksumError
+          false
         end
       end
 

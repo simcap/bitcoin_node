@@ -4,11 +4,25 @@ require 'digest'
 module BitcoinNode
   module Protocol
 
+    MessageParsingError = Class.new(StandardError)
+    IncompleteMessageError = Class.new(MessageParsingError)
+    InvalidChecksumError = Class.new(MessageParsingError)
+
+    def self.digest(content)
+      Digest::SHA256.digest(Digest::SHA256.digest(content))
+    end
+
     class Header
+      SIZE = 24
+
+      def self.build(payload)
+        new(payload)
+      end
 
       def initialize(payload)
         @payload = payload
       end
+      private_class_method :new 
 
       def raw
         @raw ||= [raw_network, raw_command, raw_length, raw_checksum_head].join
@@ -29,7 +43,7 @@ module BitcoinNode
       end
 
       def raw_checksum_head
-        Digest::SHA256.digest(Digest::SHA256.digest(@payload.raw))[0...4]
+        BN::Protocol.digest(@payload.raw)[0...4]
       end
 
     end
@@ -52,6 +66,18 @@ module BitcoinNode
         new(BN::Protocol::Getaddr.new)
       end
 
+      def self.extract_raw_payload(raw)
+        network, command, expected_length, checksum = raw.unpack('a4A12Va4')
+        payload = raw[Header::SIZE...(Header::SIZE + expected_length)]
+        if payload.bytesize < expected_length
+          raise BN::Protocol::IncompleteMessageError 
+        elsif checksum != BN::Protocol.digest(payload)[0...4]
+          raise BN::Protocol::InvalidChecksumError
+        else
+          [payload, command]
+        end
+      end
+
       attr_reader :command
 
       def initialize(payload)
@@ -61,7 +87,7 @@ module BitcoinNode
 
       def raw
         @raw ||= begin
-          [Header.new(@payload).raw, @payload.raw]
+          [Header.build(@payload).raw, @payload.raw]
             .join
             .force_encoding('binary')
         end

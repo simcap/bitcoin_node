@@ -37,7 +37,6 @@ module BitcoinNode
           else logger.unknown('Cannot log that!!')
           end
         end
-         
       end
     end
   end
