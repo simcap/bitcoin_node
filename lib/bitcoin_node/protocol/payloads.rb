@@ -12,7 +12,8 @@ module BitcoinNode
       field :relay, BooleanField, default: true
 
       def self.parse_relay(payload, fields_parsed)
-        (fields_parsed.fetch(:protocol_version).value >= 70001) ? BooleanField.parse(payload) : true
+        parsed_version = fields_parsed.fetch(:protocol_version).value
+        parsed_version >= 70001 ? BooleanField.parse(payload) : true
       end
 
     end
