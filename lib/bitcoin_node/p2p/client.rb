@@ -3,15 +3,20 @@ require 'socket'
 module BitcoinNode
   module P2p
     class Client
-      def self.connect(host, port = 8333, probe = LoggingProbe.new('client'))
+      def self.connect(host, port = 8333, probe = LoggingProbe.new("client-#{host}"))
         new(host, port, probe)
       end
 
-      def initialize(host, port = 8333, probe = LoggingProbe.new('client'))
+      attr_accessor :handshaked
+
+      def initialize(host, port = 8333, probe = LoggingProbe.new("client-#{host}"))
         @host, @buffer, @probe = host, String.new, probe
         @socket = TCPSocket.new(host, port)
+        @handshaked = false
         @probe << { connected: host }
       end
+
+      alias_method :handshaked?, :handshaked
 
       def send(message)
         raise ArgumentError unless BN::Protocol::Message === message
@@ -44,10 +49,10 @@ module BitcoinNode
         def parse
           @probe << { receiving: @command }
 
-          message = Parser.new(@command, @payload).parse
+          callback = Parser.new(@command, @payload).parse
 
           @buffer.clear
-          @client.send(message) if message
+          callback.call(@client)
         end
 
         def valid_message?
@@ -64,27 +69,30 @@ module BitcoinNode
         end
 
         def parse
+          callback = Proc.new {}
+
           if @command == 'version'
             BN::Protocol::Version.parse(@payload)
-            return BN::Protocol::Messages.verack
+            response = BN::Protocol::Messages.verack
+            callback = lambda { |client| client.send(response) }
           end
 
           if @command == 'verack'
             BN::Logger.info('Version handshake finished')
-            nil
+            callback = lambda { |client| client.handshaked = true }
           end
 
           if @command == 'addr'
             BN::Logger.info('Parsing addresses')
             BN::Protocol::Addr.parse(@payload)
-            nil
           end
 
           if @command == 'inv'
             BN::Logger.info('Parsing inv')
             BN::Protocol::Inv.parse(@payload)
-            nil
           end
+
+          callback
         end
 
       end

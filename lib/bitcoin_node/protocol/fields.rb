@@ -17,20 +17,21 @@ module BitcoinNode
       end
     end
 
-    class TimedAddressField < AddressField
-
+    TimedAddressField = Struct.new(:time, :service, :host, :port) do
       def pack
-        
+      end
+
+      def alive?
+        (Time.now.tv_sec - 10800) <= time
       end
 
       def self.parse(address)
         time, service, ip, port, remain = address.unpack('VQx12a4na*')
-        [new(host: ip.unpack("C*").join('.'), port: port), remain]
+        [new(time, service, ip.unpack("C*").join('.'), port), remain]
       end
     end
 
     class AddressesListField
-
       def self.parse(count, payload)
         Array.new(count) do
           addr, payload = TimedAddressField.parse(payload)

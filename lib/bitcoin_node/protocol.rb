@@ -97,6 +97,10 @@ module BitcoinNode
         BN::P::Message.new(BN::Protocol::Verack.new)
       end
 
+      def version
+        BN::P::Message.new(BN::Protocol::Version.new)
+      end
+
       def getaddr
         BN::P::Message.new(BN::Protocol::Getaddr.new)
       end

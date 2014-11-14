@@ -1,3 +1,20 @@
 #!/usr/bin/env ruby
 
 require 'bitcoin_node'
+require 'resolv'
+
+SEED = 'seed.bitcoin.sipa.be'
+hosts = Resolv::DNS.new.getaddresses(SEED).map(&:to_s).sample(4)
+
+threads = hosts.map do |host|
+  Thread.new(host) do |h|
+    client = BN::P2p::Client.connect(h)
+
+    client.send(BN::P::Messages.version)
+    client.send(BN::P::Messages.ping)
+  end
+end
+
+threads.map(&:join)
+
+sleep(20)

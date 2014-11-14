@@ -13,7 +13,10 @@ describe 'Version handshake' do
     payload = BN::Protocol::Version.new(addr_recv: ['127.0.0.1', port])
     message = BN::Protocol::Message.new(payload)
 
+    expect(client.handshaked?).to be false
     client.send(message)
+    expect(client.handshaked?).to be true
+
     client.send(BN::Protocol::Messages.ping)
 
     expect(client_probe.store[:sending]).to eql %w(version verack ping)
