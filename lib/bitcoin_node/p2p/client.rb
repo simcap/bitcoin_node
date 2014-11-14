@@ -25,7 +25,7 @@ module BitcoinNode
         @socket.write(message.raw)
 
         loop {
-          @buffer << @socket.readpartial(64)
+          @buffer << @socket.readpartial(1024)
           handler = CommandHandler.new(self, @buffer, @probe)
           if handler.valid_message?
             handler.parse
@@ -89,7 +89,7 @@ module BitcoinNode
 
           if @command == 'inv'
             BN::Logger.info('Parsing inv')
-            BN::Protocol::Inv.parse(@payload)
+            p BN::Protocol::Inv.parse(@payload)
           end
 
           callback

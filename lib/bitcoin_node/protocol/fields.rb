@@ -70,14 +70,17 @@ module BitcoinNode
       end
     end
 
-    class InventoryVectorField < SingleValueField
+    InventoryVectorField = Struct.new(:type, :object_hash) do
+
+      TYPES = { ERROR: 0, MSG_TX: 1, MSG_BLOCK: 2, MSG_FILTERED_BLOCK: 3 }
+
       def pack
-        [value].pack('V') 
+        [TYPES.fetch(type), object_hash].pack('Va32') 
       end
 
       def self.parse(raw)
-        inv, remain = raw.unpack('Va32')
-        [new(inv), remain]
+        type_int, object_hash, remain = raw.unpack('Va32a*')
+        [new(TYPES.invert.fetch(type_int), object_hash), remain]
       end
     end
 

@@ -11,11 +11,19 @@ module BitcoinNode
       Digest::SHA256.digest(Digest::SHA256.digest(content))
     end
 
+    def self.nonce
+      rand(0xffffffffffffffff) 
+    end
+
     class Header
       SIZE = 24
 
       def self.build_from(payload)
         new(payload)
+      end
+
+      def self.unpack(raw)
+        raw.unpack('a4A12Va4')
       end
 
       def initialize(payload)
@@ -24,42 +32,16 @@ module BitcoinNode
       private_class_method :new 
 
       def raw
-        @raw ||= [raw_network, raw_command, raw_length, raw_checksum_head].join
+        @raw ||= begin
+          [BitcoinNode.network,
+           @payload.name.ljust(12, "\x00")[0...12],
+           [@payload.bytesize].pack("V"),
+           BN::Protocol.digest(@payload.raw)[0...4]].join
+        end
       end
-
-      private 
-
-      def raw_network
-        BitcoinNode.network
-      end
-
-      def raw_command
-        @payload.name.ljust(12, "\x00")[0...12]
-      end
-
-      def raw_length
-        [@payload.bytesize].pack("V")
-      end
-
-      def raw_checksum_head
-        BN::Protocol.digest(@payload.raw)[0...4]
-      end
-
     end
 
     class Message
-      def self.validate(raw_message)
-        network, command, expected_length, checksum = raw_message.unpack('a4A12Va4')
-        payload = raw_message[Header::SIZE...(Header::SIZE + expected_length)]
-        if (actual = payload.bytesize) < expected_length
-          raise BN::P::IncompleteMessageError.new("Incomplete message (missing #{expected_length - actual} bytes)")
-        elsif checksum != BN::Protocol.digest(payload)[0...4]
-          raise BN::P::InvalidChecksumError.new("Invalid checksum on command #{command}")
-        else
-          [payload, command]
-        end
-      end
-
       attr_reader :command
 
       def initialize(payload)
@@ -80,6 +62,17 @@ module BitcoinNode
         raw.bytesize
       end
 
+      def self.validate(raw_message)
+        network, command, expected_length, checksum = Header.unpack(raw_message)
+        raw_payload = raw_message[Header::SIZE...(Header::SIZE + expected_length)]
+        if (actual = raw_payload.bytesize) < expected_length
+          raise BN::P::IncompleteMessageError.new("Incomplete message (missing #{expected_length - actual} bytes)")
+        elsif checksum != BN::Protocol.digest(raw_payload)[0...4]
+          raise BN::P::InvalidChecksumError.new("Invalid checksum on command #{command}")
+        else
+          [raw_payload, command]
+        end
+      end
     end
 
     module Messages
@@ -174,13 +167,18 @@ module BitcoinNode
         raw.bytesize
       end
 
-      def name
-        self.class.name.split('::').last.downcase 
+      def type
+        self.class.name.split('::').last
       end
 
-      def inspect
-        @instance_fields.inspect
+      def name
+        type.downcase 
       end
+
+      def to_s
+        "#<#{type} #{@instance_fields.inspect}>"
+      end
+      alias_method :inspect, :to_s
 
       private 
 

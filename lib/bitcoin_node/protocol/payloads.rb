@@ -6,7 +6,7 @@ module BitcoinNode
       field :timestamp, Integer64Field, default: lambda { Time.now.tv_sec }
       field :addr_recv, AddressField, default: ['127.0.0.1', 3333]
       field :addr_from, AddressField, default: ['127.0.0.1', 8333]
-      field :nonce, Integer64Field, default: lambda { rand(0xffffffffffffffff) }
+      field :nonce, Integer64Field, default: lambda { BN::Protocol.nonce }
       field :user_agent, StringField, default: "/bitcoin_node:#{BitcoinNode::VERSION}/"
       field :start_height, Integer32Field, default: 0
       field :relay, BooleanField, default: true
@@ -30,14 +30,15 @@ module BitcoinNode
 
     class Inv < Payload
       field :count, VariableIntegerField
-      field :inventory, InventoryVectorField
+      field :inventory_list, InventoryVectorField
 
       def self.parse(raw)
         count, payload = VariableIntegerField.parse(raw)  
-        Array.new(count) do
+        invs = Array.new(count) do
           inv, payload = InventoryVectorField.parse(payload)
           inv
         end
+        new(count: count, inventory_list: invs)
       end
     end
 
@@ -46,7 +47,7 @@ module BitcoinNode
     class Getaddr < Payload; end
 
     class Ping < Payload
-      field :nonce, Integer64Field, default: lambda { rand(0xffffffffffffffff) }
+      field :nonce, Integer64Field, default: lambda { BN::Protocol.nonce }
     end
 
     class Pong < Payload
