@@ -4,7 +4,15 @@ require 'digest'
 module BitcoinNode
   module Protocol
 
-    AddressField = Struct.new(:host, :port) do
+    class FieldStruct < Struct
+      def to_s
+        type = self.class.name ? self.class.name.split('::').last : '' 
+        "#<struct #{type} #{values.join(', ')}>" 
+      end
+      alias_method :inspect, :to_s
+    end
+
+    AddressField = FieldStruct.new(:host, :port) do
       def pack
         sockaddr = Socket.pack_sockaddr_in(port, host)
         p, h = sockaddr[2...4], sockaddr[4...8]
@@ -17,7 +25,7 @@ module BitcoinNode
       end
     end
 
-    TimedAddressField = Struct.new(:time, :service, :host, :port) do
+    TimedAddressField = FieldStruct.new(:time, :service, :host, :port) do
       def pack
       end
 
@@ -31,7 +39,7 @@ module BitcoinNode
       end
     end
 
-    class AddressesListField
+    AddressesListField = FieldStruct.new(:count) do
       def self.parse(count, payload)
         Array.new(count) do
           addr, payload = TimedAddressField.parse(payload)
@@ -40,17 +48,7 @@ module BitcoinNode
       end
     end
 
-    SingleValueField = Struct.new(:value) do
-      def to_s
-        "#<#{self.class.to_s.split('::').last} value=#{value.inspect}>"
-      end
-
-      def inspect
-        to_s
-      end
-    end
-
-    class VariableIntegerField < SingleValueField
+    VariableIntegerField = FieldStruct.new(:value) do
       def pack
         if value < 0xfd; [value].pack("C")
         elsif value <= 0xffff; [0xfd, value].pack("Cv")
@@ -70,7 +68,7 @@ module BitcoinNode
       end
     end
 
-    InventoryVectorField = Struct.new(:type, :object_hash) do
+    InventoryVectorField = FieldStruct.new(:type, :object_hash) do
 
       TYPES = { ERROR: 0, MSG_TX: 1, MSG_BLOCK: 2, MSG_FILTERED_BLOCK: 3 }
 
@@ -84,7 +82,7 @@ module BitcoinNode
       end
     end
 
-    class Integer32Field < SingleValueField
+    Integer32Field  = FieldStruct.new(:value) do
       def pack
         [value].pack('V')  
       end
@@ -95,7 +93,7 @@ module BitcoinNode
       end
     end
 
-    class StringField < SingleValueField
+    StringField = FieldStruct.new(:value) do
       def pack
         "#{VariableIntegerField.new(value.bytesize).pack}#{value}"
       end
@@ -111,7 +109,7 @@ module BitcoinNode
       end
     end
 
-    class Integer64Field < SingleValueField
+    Integer64Field = FieldStruct.new(:value) do
       def pack
         [value].pack('Q')  
       end
@@ -122,7 +120,7 @@ module BitcoinNode
       end
     end
 
-    class BooleanField < SingleValueField
+    BooleanField = FieldStruct.new(:value) do
       def pack
         (value == true) ? [0xFF].pack("C") : [0x00].pack("C")
       end
