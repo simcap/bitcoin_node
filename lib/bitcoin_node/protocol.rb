@@ -3,6 +3,9 @@ require 'digest'
 
 module BitcoinNode
   module Protocol
+
+    VERSION = 70001
+
     MessageParsingError = Class.new(StandardError)
     IncompleteMessageError = Class.new(MessageParsingError)
     InvalidChecksumError = Class.new(MessageParsingError)

@@ -7,12 +7,13 @@ module BitcoinNode
         new(host, port, probe)
       end
 
-      attr_accessor :handshaked
+      attr_accessor :handshaked, :version
 
       def initialize(host, port = 8333, probe = LoggingProbe.new("client-#{host}"))
         @host, @buffer, @probe = host, String.new, probe
         @socket = TCPSocket.new(host, port)
         @handshaked = false
+        @version = BN::Protocol::VERSION
         @probe << { connected: host }
       end
 
@@ -57,7 +58,9 @@ module BitcoinNode
 
         def valid_message?
           @payload, @command = BN::Protocol::Message.validate(@buffer)
-        rescue BN::P::IncompleteMessageError, BN::P::InvalidChecksumError => e
+        rescue BN::P::IncompleteMessageError
+          false
+        rescue BN::P::InvalidChecksumError => e  
           BN::Logger.info(e.message)
           false
         end
@@ -72,9 +75,12 @@ module BitcoinNode
           callback = Proc.new {}
 
           if @command == 'version'
-            BN::Protocol::Version.parse(@payload)
-            response = BN::Protocol::Messages.verack
-            callback = lambda { |client| client.send(response) }
+            received = BN::Protocol::Version.parse(@payload)
+            remote_protocol_version = received.protocol_version.value
+            callback = lambda do |client|
+              client.version = [remote_protocol_version, client.version].min
+              client.send(BN::Protocol::Messages.verack)
+            end
           end
 
           if @command == 'verack'
