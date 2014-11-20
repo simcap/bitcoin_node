@@ -3,6 +3,10 @@ require 'socket'
 module BitcoinNode
   module P2p
     class Client
+
+      WRITE_TIMEOUT = 5
+      READ_TIMEOUT = 10
+
       def self.connect(host, port = 8333, probe = LoggingProbe.new("client-#{host}"))
         new(host, port, probe)
       end
@@ -10,7 +14,7 @@ module BitcoinNode
       attr_accessor :handshaked, :version
 
       def initialize(host, port = 8333, probe = LoggingProbe.new("client-#{host}"))
-        @host, @buffer, @probe = host, String.new, probe
+        @host, @port, @buffer, @probe = host, port, String.new, probe
         @socket = TCPSocket.new(host, port)
         @handshaked = false
         @version = BN::Protocol::VERSION
@@ -23,10 +27,10 @@ module BitcoinNode
         raise ArgumentError unless BN::Protocol::Message === message
 
         @probe << { sending: message.command }
-        @socket.write(message.raw)
+        write_with_timeout(message.raw)
 
         loop {
-          @buffer << @socket.readpartial(1024)
+          @buffer << read_with_timeout
           handler = CommandHandler.new(self, @buffer, @probe)
           if handler.valid_message?
             handler.parse
@@ -35,6 +39,22 @@ module BitcoinNode
         }
       rescue IOError => e
         BN::ClientLogger.error(e.message)
+      end
+
+      def write_with_timeout(raw_message)
+        if IO.select(nil, [@socket], nil, WRITE_TIMEOUT)
+          @socket.write(raw_message)
+        else
+          raise "Timeout trying to write on socket #{@host}:#{@port}"
+        end
+      end
+
+      def read_with_timeout
+        if IO.select([@socket], nil, nil, READ_TIMEOUT)
+          @socket.readpartial(1024)
+        else
+          raise "Timeout trying to read on socket #{@host}:#{@port}"
+        end
       end
 
       def close!
