@@ -1,5 +1,5 @@
 # coding: ascii-8bit
-require_relative 'protocol/payload_dsl'
+require_relative 'protocol/fields_dsl'
 require 'digest'
 
 module BitcoinNode
@@ -104,7 +104,7 @@ module BitcoinNode
     end
 
     class Payload
-      extend PayloadDsl
+      extend FieldsDsl
 
       def initialize(attributes = {})
         attributes.each do |k,v|
