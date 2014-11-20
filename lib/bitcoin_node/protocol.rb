@@ -104,22 +104,22 @@ module BitcoinNode
     end
 
     class Payload
-      extend FieldsDsl
+      include FieldsDsl
 
       def initialize(attributes = {})
         attributes.each do |k,v|
           self.send("#{k}=", v) 
         end
-        missings = self.class.field_names - attributes.keys
+        missings = fields_definitions.keys - attributes.keys
         missings.each do |k|
-          d = self.class.defaults[k]
+          d = defaults_definitions[k]
           self.send("#{k}=", Proc === d ? d.call : d)
         end
       end
 
       def raw
         @raw ||= begin
-          ordered = instance_fields.values_at(*self.class.field_names)
+          ordered = fields.values_at(*fields_definitions.keys)
           ordered.map(&:pack).join
         end
       end
@@ -137,12 +137,12 @@ module BitcoinNode
       end
 
       def to_s
-        "#<#{type} #{@instance_fields.inspect}>"
+        "#<#{type} #{fields.inspect}>"
       end
       alias_method :inspect, :to_s
 
       def self.parse(payload)
-        result = fields.inject({}) do |memo, (field_name, type)|
+        result = fields_definitions.inject({}) do |memo, (field_name, type)|
           custom_parse_method = "parse_#{field_name.to_s}"
           parsed, payload = if respond_to?(custom_parse_method)
                               public_send(custom_parse_method, payload, memo)
@@ -157,8 +157,8 @@ module BitcoinNode
 
       private 
 
-      def instance_fields
-        @instance_fields ||= {}
+      def fields
+        @fields ||= {}
       end
     end
   end
