@@ -45,6 +45,7 @@ module BitcoinNode
         if IO.select(nil, [@socket], nil, WRITE_TIMEOUT)
           @socket.write(raw_message)
         else
+          close!
           raise "Timeout trying to write on socket #{@host}:#{@port}"
         end
       end
@@ -53,6 +54,7 @@ module BitcoinNode
         if IO.select([@socket], nil, nil, READ_TIMEOUT)
           @socket.readpartial(1024)
         else
+          close!
           raise "Timeout trying to read on socket #{@host}:#{@port}"
         end
       end
