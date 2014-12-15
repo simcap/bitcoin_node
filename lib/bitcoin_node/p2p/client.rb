@@ -11,7 +11,7 @@ module BitcoinNode
         new(host, port, options)
       end
 
-      attr_accessor :handshaked, :version
+      attr_accessor :handshaked, :version, :peer_version
 
       def initialize(host, port = 8333, options = {})
         @read_timeout = options[:read_timeout] || 10
@@ -21,7 +21,7 @@ module BitcoinNode
         @host, @port, @buffer = host, port, String.new
         @socket = TCPSocket.new(host, port)
         @handshaked = false
-        @version = BN::Protocol::VERSION
+        @version, @peer_version = BN::Protocol::VERSION, nil
         @probe << { connected: host }
       end
 
@@ -104,14 +104,21 @@ module BitcoinNode
             received = BN::Protocol::Version.parse(@payload)
             remote_protocol_version = received.protocol_version.value
             callback = lambda do |client|
+              client.peer_version = remote_protocol_version
               client.version = [remote_protocol_version, client.version].min
               client.send(BN::Protocol::Messages.verack)
             end
           end
 
           if @command == 'verack'
-            BN::Logger.info('Version handshake finished')
-            callback = lambda { |client| client.handshaked = true }
+            callback = lambda do |client|
+              if client.peer_version
+                client.handshaked = true
+                BN::Logger.info('Version handshake finished')
+              else
+                BN::Logger.info('Cannot verack without version exchanged')
+              end
+            end
           end
 
           if @command == 'addr'

@@ -20,6 +20,7 @@ describe 'Version handshake' do
 
     expect(client.handshaked?).to eql true
     expect(client.version).to eql 60001
+    expect(client.peer_version).to eql 70001
 
     client.send(BN::Protocol::Messages.ping)
 
@@ -35,6 +36,32 @@ describe 'Version handshake' do
     expect {
       client.send(BN::Protocol::Messages.verack)
     }.to raise_error /Timeout/
+    expect(client.handshaked?).to eql false
+  end
+
+  it 'client does not answer to verack if no version exchanged beforehand' do
+    class BadPeer
+      include Celluloid::IO
+
+      def initialize(port)
+        @server = TCPServer.new('localhost', port)     
+        async.run
+      end
+
+      def run
+       loop { async.on_connection @server.accept } 
+      end
+
+      def on_connection(socket)
+        socket.write(BN::Protocol::Messages.verack.raw)
+        socket.close
+      end
+    end
+
+    bad_peer = BadPeer.new(port)
+    client = BN::P2p::Client.connect('localhost', port, read_timeout: 1)
+    client.send(BN::Protocol::Messages.ping)
+
     expect(client.handshaked?).to eql false
   end
 
