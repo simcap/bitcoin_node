@@ -10,6 +10,7 @@ module BitcoinNode
       def initialize(port = 3333,  probe = LoggingProbe.new('server'))
         @server = TCPServer.new('localhost', port)
         @probe  = probe
+        @peers = Peers.new
         async.run
       end
 
@@ -25,6 +26,7 @@ module BitcoinNode
 
       def accept_connection(socket)
         _, port, host = socket.peeraddr
+        @peers.update(host, :connect)
         @probe << { connection: "#{host}:#{port}" }
 
         loop { handle_messages(socket) }
@@ -41,13 +43,19 @@ module BitcoinNode
           payload = BN::Protocol::Version.new(addr_recv: ['127.0.0.1', port]) 
           message = BN::Protocol::Message.new(payload)
           @probe << { sending: 'version' }
+          @peers.update(host, :version)
           socket.write(message.raw)
         end
 
         if command == 'verack'
-          verack = BN::Protocol::Messages.verack
-          @probe << { sending: 'verack' }
-          socket.write(verack.raw)
+          if @peers.status(host) == :version
+            verack = BN::Protocol::Messages.verack
+            @probe << { sending: 'verack' }
+            @peers.update(host, :verack)
+            socket.write(verack.raw)
+          else
+            @probe << { ignoring: 'verack' }
+          end
         end
 
         if command == 'ping'
@@ -58,6 +66,29 @@ module BitcoinNode
         end
       end
 
+
+      class Peers 
+        def initialize
+          @mutex = Mutex.new
+          @peers = {}
+        end
+
+        def update(peer, status)
+          @mutex.synchronize do
+            @peers[peer] = status
+          end
+        end
+
+        def status(peer)
+          @mutex.synchronize do
+            @peers[peer]
+          end
+        end
+
+        def to_s
+          @peers.to_s 
+        end
+      end
     end
   end
 end

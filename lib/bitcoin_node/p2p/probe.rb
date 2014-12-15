@@ -31,6 +31,7 @@ module BitcoinNode
           case key
           when :sending then logger.info("Sending #{value}")
           when :receiving then logger.info("Receiving #{value}")
+          when :ignoring then logger.info("Ignoring #{value}")
           when :connected then logger.info("Connected to #{value}")
           when :connection then logger.info("Connection received from #{value}")
           when :closed then logger.info("Closed connection to #{value}")

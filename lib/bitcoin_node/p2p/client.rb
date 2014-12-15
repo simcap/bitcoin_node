@@ -7,14 +7,18 @@ module BitcoinNode
       WRITE_TIMEOUT = 5
       READ_TIMEOUT = 10
 
-      def self.connect(host, port = 8333, probe = LoggingProbe.new("client-#{host}"))
-        new(host, port, probe)
+      def self.connect(host, port = 8333, options = {})
+        new(host, port, options)
       end
 
       attr_accessor :handshaked, :version
 
-      def initialize(host, port = 8333, probe = LoggingProbe.new("client-#{host}"))
-        @host, @port, @buffer, @probe = host, port, String.new, probe
+      def initialize(host, port = 8333, options = {})
+        @read_timeout = options[:read_timeout] || 10
+        @write_timeout = options[:write_timeout] || 5
+        @probe = options[:probe] || LoggingProbe.new("client-#{host}")
+
+        @host, @port, @buffer = host, port, String.new
         @socket = TCPSocket.new(host, port)
         @handshaked = false
         @version = BN::Protocol::VERSION
@@ -42,7 +46,7 @@ module BitcoinNode
       end
 
       def write_with_timeout(raw_message)
-        if IO.select(nil, [@socket], nil, WRITE_TIMEOUT)
+        if IO.select(nil, [@socket], nil, @write_timeout)
           @socket.write(raw_message)
         else
           close!
@@ -51,7 +55,7 @@ module BitcoinNode
       end
 
       def read_with_timeout
-        if IO.select([@socket], nil, nil, READ_TIMEOUT)
+        if IO.select([@socket], nil, nil, @read_timeout)
           @socket.readpartial(1024)
         else
           close!
