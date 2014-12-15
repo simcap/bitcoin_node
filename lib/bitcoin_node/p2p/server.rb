@@ -66,21 +66,24 @@ module BitcoinNode
         end
       end
 
+      require 'monitor'
 
       class Peers 
+        include MonitorMixin
+
         def initialize
-          @mutex = Mutex.new
           @peers = {}
+          super
         end
 
         def update(peer, status)
-          @mutex.synchronize do
+          synchronize do
             @peers[peer] = status
           end
         end
 
         def status(peer)
-          @mutex.synchronize do
+          synchronize do
             @peers[peer]
           end
         end
