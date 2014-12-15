@@ -4,9 +4,6 @@ module BitcoinNode
   module P2p
     class Client
 
-      WRITE_TIMEOUT = 5
-      READ_TIMEOUT = 10
-
       def self.connect(host, port = 8333, options = {})
         new(host, port, options)
       end
