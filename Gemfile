@@ -5,7 +5,8 @@ gemspec
 
 gem 'rake'
 
-group :test do
+group :test, :development do
+  gem 'pry-byebug'
+  gem 'awesome_print'
   gem 'rspec'
-  gem 'pry'
 end

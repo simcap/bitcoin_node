@@ -9,7 +9,7 @@ module BitcoinNode
 
       def initialize(port = 3333,  probe = LoggingProbe.new('server'))
         @server = TCPServer.new('localhost', port)
-        @probe  = probe
+        @probe = probe
         @peers = Peers.new
         async.run
       end
@@ -40,7 +40,7 @@ module BitcoinNode
         @probe << { receiving: command }
 
         if command == 'version'
-          payload = BN::Protocol::Version.new(addr_recv: ['127.0.0.1', port]) 
+          payload = BN::Protocol::Version.new(addr_recv: ['127.0.0.1', port])
           message = BN::Protocol::Message.new(payload)
           @probe << { sending: 'version' }
           @peers.update(host, :version)
@@ -68,7 +68,7 @@ module BitcoinNode
 
       require 'monitor'
 
-      class Peers 
+      class Peers
         include MonitorMixin
 
         def initialize
@@ -89,7 +89,7 @@ module BitcoinNode
         end
 
         def to_s
-          @peers.to_s 
+          @peers.to_s
         end
       end
     end

@@ -2,11 +2,11 @@ require 'spec_helper'
 
 describe 'Version handshake' do
 
-  let(:port) { 3333 } 
+  let(:addr) { '127.0.0.1' }
+  let(:port) { random_port }
 
   it 'peers exchanges version properly' do
-    server = BN::P2p::Server.new
-
+    server = BN::P2p::Server.new(port)
     client_probe = BN::P2p::StoreProbe.new
     client = BN::P2p::Client.connect('localhost', port, probe: client_probe)
     client.version = 60001
@@ -15,7 +15,7 @@ describe 'Version handshake' do
     message = BN::Protocol::Message.new(payload)
 
     expect(client.handshaked?).to eql false
-    
+
     client.send(message)
 
     expect(client.handshaked?).to eql true
@@ -29,9 +29,9 @@ describe 'Version handshake' do
   end
 
   it 'server does not answer to verack if no version exchanged beforehand' do
-    server = BN::P2p::Server.new
+    server = BN::P2p::Server.new(port)
     client = BN::P2p::Client.connect('localhost', port, read_timeout: 1)
-    
+
     expect(client.handshaked?).to eql false
     expect {
       client.send(BN::Protocol::Messages.verack)
@@ -44,12 +44,12 @@ describe 'Version handshake' do
       include Celluloid::IO
 
       def initialize(port)
-        @server = TCPServer.new('localhost', port)     
+        @server = TCPServer.new('localhost', port)
         async.run
       end
 
       def run
-       loop { async.on_connection @server.accept } 
+        loop { async.on_connection @server.accept }
       end
 
       def on_connection(socket)
