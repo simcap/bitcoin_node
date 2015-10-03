@@ -9,7 +9,6 @@ Using as much as Ruby stdlib as possible. Main foreign dependency is `Celluloid:
 Add to your Gemfile `gem 'bitcoin_node'` or locally run
 
     $ gem install bitcoin_node
-    $ bundle install
 
 Test
 
